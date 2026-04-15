@@ -12,7 +12,7 @@ DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
 ADMIN_USER = "admin" 
-ADMIN_PASS = "teeta123"
+ADMIN_PASS = "123"
 
 # --- 2. HÀM HỆ THỐNG ---
 def hash_password(password):
