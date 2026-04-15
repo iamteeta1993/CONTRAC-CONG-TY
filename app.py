@@ -4,6 +4,7 @@ import os
 import requests
 import hashlib
 from datetime import datetime
+import urllib.parse
 
 # --- 1. CẤU HÌNH HỆ THỐNG ---
 USER_FILE = "users.xlsx"
@@ -51,8 +52,8 @@ if st.session_state["role"] is None:
     st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
     t1, t2, t3 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Quản trị viên"])
     with t1:
-        u = st.text_input("User")
-        p = st.text_input("Pass", type="password")
+        u = st.text_input("Tên đăng nhập")
+        p = st.text_input("Mật khẩu", type="password")
         if st.button("Vào App"):
             role = authenticate(u, p, "user")
             if role: st.session_state["role"], st.session_state["username"] = role, u; st.rerun()
@@ -73,7 +74,7 @@ df = load_data()
 # ADMIN: THÊM MỚI
 if st.session_state["role"] == "admin":
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_api = st.sidebar.text_input("🔍 Tra cứu nhanh")
+    search_api = st.sidebar.text_input("🔍 Tra cứu nhanh MST/Tên")
     name_v, mst_v, addr_v = "", "", ""
     if search_api:
         info = get_business_info(search_api)
@@ -83,25 +84,31 @@ if st.session_state["role"] == "admin":
         f_name = st.text_input("Tên", value=name_v)
         f_mst = st.text_input("MST", value=mst_v)
         f_owner = st.text_input("Chủ")
+        f_addr = st.text_input("Địa chỉ (Sẽ dùng để tìm Maps)", value=addr_v)
         f_phone = st.text_input("SĐT")
         if st.form_submit_button("Lưu Mới"):
             now = datetime.now().strftime("%d/%m/%Y %H:%M")
-            new_row = pd.DataFrame([[f_name, f_mst, f_owner, addr_v, f_phone, f"https://zalo.me{f_phone}", now]], columns=COLUMNS)
+            new_row = pd.DataFrame([[f_name, f_mst, f_owner, f_addr, f_phone, f"https://zalo.me{f_phone}", now]], columns=COLUMNS)
             df = pd.concat([df, new_row], ignore_index=True)
             df.to_excel(DATA_FILE, index=False); st.rerun()
 
 # TRA CỨU & HIỂN THỊ
-q = st.text_input("🔎 Tìm nhanh...")
+q = st.text_input("🔎 Tìm nhanh công ty...")
 if not df.empty:
     display_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
     for i, row in display_df.iterrows():
         with st.expander(f"🏢 {row['Tên Công Ty']} - MST: {row['Mã Số Thuế']}"):
             c1, c2 = st.columns(2)
             with c1:
-                st.write(f"📍 **ĐC:** {row['Địa Chỉ']}\n👤 **Chủ:** {row['Chủ Doanh Nghiệp']}")
+                st.write(f"📍 **ĐC:** {row['Địa Chỉ']}")
+                # NÚT GOOGLE MAPS: Tự động tạo link tìm kiếm theo địa chỉ
+                maps_url = f"https://google.com{urllib.parse.quote(str(row['Địa Chỉ']))}"
+                st.markdown(f"[🌍 Xem trên Google Maps]({maps_url})")
+                st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']}")
                 st.caption(f"🕒 Cập nhật: {row['Cập Nhật Cuối']}")
             with c2:
-                st.write(f"📞 **SĐT:** {row['Liên Hệ']}\n💬 [Zalo]({row['Zalo']})")
+                st.write(f"📞 **SĐT:** {row['Liên Hệ']}")
+                st.markdown(f"[💬 Nhắn Zalo]({row['Zalo']})")
             
             # CHỨC NĂNG ADMIN: SỬA & XÓA
             if st.session_state["role"] == "admin":
@@ -109,7 +116,10 @@ if not df.empty:
                 with col_e:
                     if st.button(f"📝 Sửa", key=f"e_{i}"): st.session_state[f"edit_{i}"] = True
                 with col_d:
-                    if st.button(f"🗑️ Xóa", key=f"d_{i}"): df.drop(i).to_excel(DATA_FILE, index=False); st.rerun()
+                    if st.button(f"🗑️ Xóa", key=f"d_{i}"): 
+                        df = df.drop(i)
+                        df.to_excel(DATA_FILE, index=False)
+                        st.rerun()
                 
                 if st.session_state.get(f"edit_{i}"):
                     with st.form(f"f_edit_{i}"):
