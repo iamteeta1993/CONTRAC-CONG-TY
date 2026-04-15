@@ -13,9 +13,9 @@ USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
 
 ADMIN_USER = "admin" 
-ADMIN_PASS = "123"
+ADMIN_PASS = "teeta123"
 
-# --- 2. CÁC HÀM XỬ LÝ (BACKEND) ---
+# --- 2. CÁC HÀM XỬ LÝ DỮ LIỆU ---
 def hash_password(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
@@ -65,8 +65,9 @@ if "role" not in st.session_state:
     st.session_state["role"] = None
 
 if st.session_state["role"] is None:
-    st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #FF4B4B; font-family: Arial Black;'>TEETA CODE</h1>", unsafe_allow_html=True)
     t1, t2, t3 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Quản trị viên"])
+    
     with t1:
         u = st.text_input("Tên đăng nhập", key="u_login")
         p = st.text_input("Mật khẩu", type="password", key="p_login")
@@ -76,12 +77,15 @@ if st.session_state["role"] is None:
                 st.session_state["role"], st.session_state["username"] = role, u
                 st.rerun()
             else: st.error("Sai tài khoản hoặc mật khẩu!")
+
     with t2:
-        u_reg = st.text_input("Tạo tên mới", key="u_reg")
-        p_reg = st.text_input("Tạo mật khẩu mới", type="password", key="p_reg")
+        u_reg = st.text_input("Tên đăng nhập mới", key="u_reg")
+        p_reg = st.text_input("Mật khẩu mới", type="password", key="p_reg")
         if st.button("Hoàn tất Đăng ký", use_container_width=True):
-            if u_reg and p_reg and save_user(u_reg, p_reg): st.success("Thành công! Qua tab Đăng nhập nhé.")
-            else: st.error("Lỗi tên hoặc trùng!")
+            if u_reg and p_reg and save_user(u_reg, p_reg):
+                st.success("Đã tạo tài khoản! Mời bạn qua tab Đăng nhập.")
+            else: st.error("Tên đăng nhập đã tồn tại hoặc không hợp lệ!")
+    
     with t3:
         ua = st.text_input("Tài khoản Admin", key="ua_ad")
         pa = st.text_input("Mật khẩu Admin", type="password", key="pa_ad")
@@ -94,16 +98,17 @@ if st.session_state["role"] is None:
     st.stop()
 
 # --- 4. GIAO DIỆN CHÍNH (SAU KHI ĐĂNG NHẬP) ---
-st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black;'>TEETA <span style='color: #31333F;'>CODE</span></h1> </div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black; font-size: 45px;'>TEETA <span style='color: #31333F;'>CODE</span></h1> </div>", unsafe_allow_html=True)
 
+# Sidebar: Người dùng & Nhạc
 st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
-    st.session_state["role"] = None; st.rerun()
+    st.session_state["role"] = None
+    st.rerun()
 
-# --- PHẦN NHẠC (SỬA LỖI HIỂN THỊ VÀ LINK NHẠC) ---
+# --- TRÌNH PHÁT NHẠC (SỬA LỖI HIỂN THỊ) ---
 st.sidebar.divider()
 st.sidebar.subheader("🎵 TEETA MUSIC")
-
 music_html = """
     <div id="player"></div>
     <script src="https://youtube.com"></script>
@@ -111,51 +116,33 @@ music_html = """
         var player;
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '180',
-                width: '100%',
-                videoId: 'HaIjR05n1Vc', // ID từ link bạn gửi
-                playerVars: {
-                    'autoplay': 1,
-                    'controls': 1,
-                    'mute': 0,
-                    'loop': 1,
-                    'playlist': 'HaIjR05n1Vc'
-                },
-                events: {
-                    'onReady': onPlayerReady
-                }
+                height: '180', width: '100%', videoId: 'HaIjR05n1Vc',
+                playerVars: { 'autoplay': 1, 'controls': 1, 'mute': 0 },
+                events: { 'onReady': onPlayerReady }
             });
         }
-        function onPlayerReady(event) {
-            event.target.setVolume(50); // Mặc định âm lượng 50%
-            event.target.playVideo();
-        }
+        function onPlayerReady(event) { event.target.setVolume(50); event.target.playVideo(); }
     </script>
 """
 with st.sidebar:
-    st.components.v1.html(music_html, height=200)
-
-st.sidebar.caption("🎧 Nhạc tự phát 50%. Tương tác với màn hình để nghe nhạc.")
+    st.components.v1.html(music_html, height=210)
+st.sidebar.caption("🎧 Nhạc tự phát 50%. Bấm vào màn hình để bắt đầu nghe.")
 
 df = load_data()
 
-# --- QUẢN TRỊ VIÊN THÊM CÔNG TY ---
+# Admin: Thêm công ty
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
     search_api = st.sidebar.text_input("🔍 Tra cứu nhanh MST/Tên")
     n_v, m_v, a_v = "", "", ""
     if search_api:
-        with st.sidebar.spinner('Đang lấy dữ liệu...'):
-            info = get_business_info(search_api)
-            if info: n_v, m_v, a_v = info.get('name', ''), info.get('id', ''), info.get('address', '')
+        info = get_business_info(search_api)
+        if info: n_v, m_v, a_v = info.get('name', ''), info.get('id', ''), info.get('address', '')
     
     with st.sidebar.form("add_form", clear_on_submit=True):
-        f_n = st.text_input("Tên Công Ty", value=n_v)
-        f_m = st.text_input("Mã Số Thuế", value=m_v)
-        f_o = st.text_input("Chủ Doanh Nghiệp")
-        f_a = st.text_input("Địa Chỉ", value=a_v)
-        f_p = st.text_input("Số Điện Thoại")
+        f_n = st.text_input("Tên", value=n_v); f_m = st.text_input("MST", value=m_v)
+        f_o = st.text_input("Chủ"); f_a = st.text_input("Địa chỉ", value=a_v); f_p = st.text_input("SĐT")
         if st.form_submit_button("Lưu Vào Hệ Thống", use_container_width=True):
             if f_n and f_m:
                 now = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -165,8 +152,8 @@ if st.session_state["role"] == "admin":
                 df.to_excel(DATA_FILE, index=False)
                 st.rerun()
 
-# --- TRA CỨU VÀ HIỂN THỊ ---
-q = st.text_input("🔎 Tìm nhanh trong danh sách của bạn...")
+# Hiển thị & Tìm kiếm
+q = st.text_input("🔎 Tìm nhanh công ty...")
 if not df.empty:
     f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
     for i, row in f_df.iterrows():
@@ -175,11 +162,12 @@ if not df.empty:
             with c1:
                 st.write(f"📍 **ĐC:** {row['Địa Chỉ']}")
                 maps_q = urllib.parse.quote(str(row['Địa Chỉ']))
-                st.markdown(f"🌍 [Xem vị trí trên Google Maps](https://google.com{maps_q})")
+                st.markdown(f"🌍 [Xem trên Google Maps](https://google.com{maps_q})")
                 st.caption(f"🕒 Cập nhật: {row['Cập Nhật Cuối']}")
             with c2:
                 st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']} | 📞 **SĐT:** {row['Liên Hệ']}")
-                st.markdown(f"""<a href="https://zalo.me{clean_phone(row['Liên Hệ'])}" target="_blank" style="text-decoration: none;"><div style="background-color: #0068FF; color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold;">💬 NHẮN ZALO NGAY</div></a>""", unsafe_allow_html=True)
+                pure_z = clean_phone(row['Liên Hệ'])
+                st.markdown(f"""<a href="https://zalo.me{pure_z}" target="_blank" style="text-decoration: none;"><div style="background-color: #0068FF; color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold;">💬 NHẮN ZALO NGAY</div></a>""", unsafe_allow_html=True)
             
             if st.session_state["role"] == "admin":
                 ce, cd = st.columns(2)
@@ -187,37 +175,15 @@ if not df.empty:
                     if st.button("📝 Sửa", key=f"e_{i}"): st.session_state[f"edit_{i}"] = True
                 with cd:
                     if st.button("🗑️ Xóa", key=f"d_{i}"):
-                        df.drop(i).to_excel(DATA_FILE, index=False)
-                        st.rerun()
+                        df.drop(i).to_excel(DATA_FILE, index=False); st.rerun()
                 if st.session_state.get(f"edit_{i}"):
                     with st.form(f"f_e_{i}"):
-                        en=st.text_input("Tên", value=row['Tên Công Ty'])
-                        em=st.text_input("MST", value=row['Mã Số Thuế'])
-                        eo=st.text_input("Chủ", value=row['Chủ Doanh Nghiệp'])
-                        ea=st.text_input("Địa chỉ", value=row['Địa Chỉ'])
+                        en=st.text_input("Tên", value=row['Tên Công Ty']); em=st.text_input("MST", value=row['Mã Số Thuế'])
+                        eo=st.text_input("Chủ", value=row['Chủ Doanh Nghiệp']); ea=st.text_input("Địa chỉ", value=row['Địa Chỉ'])
                         ep=st.text_input("SĐT", value=row['Liên Hệ'])
                         if st.form_submit_button("Xác nhận Cập nhật"):
                             df.iloc[i] = [en, em, eo, ea, ep, f"https://zalo.me{clean_phone(ep)}", datetime.now().strftime("%d/%m/%Y %H:%M")]
                             df.to_excel(DATA_FILE, index=False)
-                            st.session_state[f"edit_{i}"] = False
-                            st.rerun()
+                            st.session_state[f"edit_{i}"] = False; st.rerun()
 else:
-# --- TRÌNH PHÁT NHẠC TEETA MUSIC ---
-st.sidebar.divider()
-st.sidebar.subheader("🎵 Nhạc Làm Việc")
-
-# Link bản nhạc bạn vừa gửi
-default_music = "https://www.youtube.com/watch?v=HaIjR05n1Vc"
-
-# Tạo ô dán link (đã để sẵn link nhạc của bạn làm mặc định)
-url = st.sidebar.text_input("Dán link YouTube khác nếu muốn đổi nhạc:", value=default_music)
-
-if url:
-    # Trình phát này của Streamlit cho phép người dùng tự:
-    # 1. Bấm Dừng/Phát
-    # 2. Kéo thanh âm lượng (Tắt âm)
-    # 3. Tua nhạc
-    st.sidebar.video(url)
-    st.sidebar.caption("🎧 Bạn có thể tùy chỉnh Âm lượng hoặc Tạm dừng ngay trên thanh điều khiển phía trên.")
-
-st.sidebar.write("---")
+    st.info("Chưa có dữ liệu.")
