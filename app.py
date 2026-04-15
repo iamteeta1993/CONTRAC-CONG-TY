@@ -7,7 +7,7 @@ from datetime import datetime
 import urllib.parse
 import re
 
-# --- 1. CẤU HÌNH HỆ THỐNG ---
+# --- 1. CẤU HÌNH ---
 DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
@@ -57,81 +57,50 @@ def load_data():
 def clean_phone(phone):
     return re.sub(r'\D', '', str(phone))
 
-# --- 3. GIAO DIỆN ĐĂNG NHẬP / KHÁCH ---
+# --- 3. ĐĂNG NHẬP ---
 st.set_page_config(page_title="TEETA CODE", layout="wide")
 
 if "role" not in st.session_state:
     st.session_state["role"] = None
 
 if st.session_state["role"] is None:
-    st.markdown("<h1 style='text-align: center; color: #FF4B4B; font-family: Arial Black;'>TEETA CODE</h1>", unsafe_allow_html=True)
-    t1, t2, t3, t4 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Quản trị viên", "🌐 Vào App (Khách)"])
-    
+    st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
+    t1, t2, t3, t4 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Admin", "🌐 Khách"])
     with t1:
-        u = st.text_input("Tên đăng nhập", key="u_login")
-        p = st.text_input("Mật khẩu", type="password", key="p_login")
-        if st.button("Xác nhận", use_container_width=True):
-            role = authenticate(u, p, "user")
-            if role:
-                st.session_state["role"], st.session_state["username"] = role, u
-                st.rerun()
-            else: st.error("Sai tài khoản!")
-
+        u = st.text_input("User"); p = st.text_input("Pass", type="password")
+        if st.button("VÀO APP"):
+            r = authenticate(u, p, "user")
+            if r: st.session_state["role"], st.session_state["username"] = r, u; st.rerun()
     with t3:
-        ua = st.text_input("Tài khoản Admin", key="ua_ad")
-        pa = st.text_input("Mật khẩu Admin", type="password", key="pa_ad")
-        if st.button("Vào quyền Quản trị", use_container_width=True):
-            role = authenticate(ua, pa, "admin")
-            if role:
-                st.session_state["role"], st.session_state["username"] = role, "CHỦ APP"
-                st.rerun()
-            else: st.error("Sai pass Admin!")
-
+        ua = st.text_input("Admin User"); pa = st.text_input("Admin Pass", type="password")
+        if st.button("VÀO QUYỀN ADMIN"):
+            r = authenticate(ua, pa, "admin")
+            if r: st.session_state["role"], st.session_state["username"] = r, "CHỦ APP"; st.rerun()
     with t4:
-        st.info("Chế độ Khách: Chỉ xem dữ liệu.")
-        if st.button("VÀO XEM NGAY (FREE)", use_container_width=True):
-            st.session_state["role"] = "guest"
-            st.session_state["username"] = "Khách"
-            st.rerun()
+        if st.button("VÀO XEM FREE"):
+            st.session_state["role"], st.session_state["username"] = "guest", "Khách"; st.rerun()
     st.stop()
 
 # --- 4. TRANG CHÍNH ---
-st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black; font-size: 45px;'>TEETA <span style='color: #31333F;'>CODE</span></h1> </div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black;'>TEETA <span style='color: #31333F;'>CODE</span></h1> </div>", unsafe_allow_html=True)
 
-# SIDEBAR: THÔNG TIN & NHẠC LOFI
-st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
+# SIDEBAR: THÔNG TIN & NHẠC
+st.sidebar.write(f"👤: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
     st.session_state["role"] = None; st.rerun()
 
 st.sidebar.divider()
-st.sidebar.subheader("🎵 LOFI MUSIC")
-# Tao đã sửa link chuẩn đét để không bị lỗi IP nữa
-music_id = "3I0zIK1X0vk" 
+st.sidebar.subheader("🎵 TEETA MUSIC")
+
+# ĐOẠN CODE NHẠC ĐÃ FIX LỖI LINK (Dùng Iframe chuẩn của Youtube)
+music_id = "3I0zIK1X0vk"
 music_html = f"""
-    <iframe width="100%" height="180" 
-    src="https://youtube.com{music_id}?autoplay=1&mute=0&enablejsapi=1&loop=1&playlist={music_id}" 
-    frameborder="0" allow="autoplay; encrypted-media" id="video-player"></iframe>
-    <script>
-      var tag = document.createElement('script');
-      tag.src = "https://youtube.com";
-      var firstScriptTag = document.getElementsByTagName('script');
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      var player;
-      function onYouTubeIframeAPIReady() {{
-        player = new YT.Player('video-player', {{
-          events: {{
-            'onReady': function(event) {{
-              event.target.setVolume(50);
-              event.target.playVideo();
-            }}
-          }}
-        }});
-      }}
-    </script>
+    <iframe width="100%" height="150" src="https://youtube.com{music_id}?autoplay=1&mute=0" 
+    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 """
 with st.sidebar:
-    st.components.v1.html(music_html, height=200)
-st.sidebar.caption("🎧 Nhạc tự phát 50%. Hãy chạm vào App 1 lần để nghe tiếng nhé!")
+    st.components.v1.html(music_html, height=180)
+st.sidebar.caption("🎧 Nếu không nghe thấy nhạc, hãy bấm nút Play trên khung hình hoặc chạm vào App 1 cái nhé!")
 
 df = load_data()
 
@@ -139,12 +108,12 @@ df = load_data()
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_mst = st.sidebar.text_input("🔍 Gõ MST tra cứu")
+    search_mst = st.sidebar.text_input("🔍 Gõ MST")
     n_v, a_v = "", ""
     if search_mst:
         info = get_business_info(search_mst)
         if info: n_v, a_v = info.get('name', ''), info.get('address', '')
-    with st.sidebar.form("add", clear_on_submit=True):
+    with st.sidebar.form("add"):
         fn = st.text_input("Tên", value=n_v); fm = st.text_input("MST", value=search_mst); fp = st.text_input("SĐT")
         if st.form_submit_button("Lưu"):
             now = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -153,7 +122,7 @@ if st.session_state["role"] == "admin":
             df.to_excel(DATA_FILE, index=False); st.rerun()
 
 # TRA CỨU
-q = st.text_input("🔎 Tìm công ty...")
+q = st.text_input("🔎 Tìm nhanh...")
 if not df.empty:
     f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
     for i, row in f_df.iterrows():
@@ -161,9 +130,9 @@ if not df.empty:
             c1, c2 = st.columns(2)
             with c1:
                 st.write(f"📍 {row['Địa Chỉ']}")
-                st.markdown(f"🌍 [Google Maps](https://google.com{urllib.parse.quote(str(row['Địa Chỉ']))})")
+                st.markdown(f"🌍 [Bản đồ](https://google.com{urllib.parse.quote(str(row['Địa Chỉ']))})")
             with c2:
                 st.write(f"📞 {row['Liên Hệ']} | [💬 Zalo]({row['Zalo']})")
             if st.session_state["role"] == "admin":
                 if st.button("🗑️ Xóa", key=f"d_{i}"): df.drop(i).to_excel(DATA_FILE, index=False); st.rerun()
-else: st.info("Danh sách trống.")
+else: st.info("Chưa có dữ liệu.")
