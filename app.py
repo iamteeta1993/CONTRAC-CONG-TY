@@ -15,7 +15,7 @@ COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa C
 
 # TÀI KHOẢN ADMIN DUY NHẤT CỦA BẠN
 ADMIN_USER = "admin" 
-ADMIN_PASS = "teeta123"
+ADMIN_PASS = "123"
 
 # --- 2. CÁC HÀM XỬ LÝ (BACKEND) ---
 def hash_password(password):
