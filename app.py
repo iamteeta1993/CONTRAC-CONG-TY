@@ -7,7 +7,7 @@ from datetime import datetime
 import urllib.parse
 import re
 
-# --- 1. CẤU HÌNH ---
+# --- 1. CẤU HÌNH HỆ THỐNG ---
 DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
@@ -57,7 +57,7 @@ def load_data():
 def clean_phone(phone):
     return re.sub(r'\D', '', str(phone))
 
-# --- 3. ĐĂNG NHẬP ---
+# --- 3. GIAO DIỆN ĐĂNG NHẬP / KHÁCH ---
 st.set_page_config(page_title="TEETA CODE", layout="wide")
 
 if "role" not in st.session_state:
@@ -67,38 +67,40 @@ if st.session_state["role"] is None:
     st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
     t1, t2, t3, t4 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Admin", "🌐 Khách"])
     with t1:
-        u = st.text_input("Tên đăng nhập")
-        p = st.text_input("Mật khẩu", type="password")
-        if st.button("VÀO APP", use_container_width=True):
+        u = st.text_input("User"); p = st.text_input("Pass", type="password")
+        if st.button("VÀO APP"):
             r = authenticate(u, p, "user")
             if r: st.session_state["role"], st.session_state["username"] = r, u; st.rerun()
     with t3:
-        ua = st.text_input("Tài khoản Admin")
-        pa = st.text_input("Mật khẩu Admin", type="password")
-        if st.button("ĐĂNG NHẬP ADMIN", use_container_width=True):
+        ua = st.text_input("Admin User"); pa = st.text_input("Admin Pass", type="password")
+        if st.button("VÀO QUYỀN ADMIN"):
             r = authenticate(ua, pa, "admin")
             if r: st.session_state["role"], st.session_state["username"] = r, "CHỦ APP"; st.rerun()
     with t4:
-        if st.button("VÀO XEM FREE (KHÁCH)", use_container_width=True):
+        if st.button("VÀO XEM FREE (KHÁCH)"):
             st.session_state["role"], st.session_state["username"] = "guest", "Khách"; st.rerun()
     st.stop()
 
 # --- 4. TRANG CHÍNH ---
 st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black;'>TEETA <span style='color: #31333F;'>CODE</span></h1> </div>", unsafe_allow_html=True)
 
-# SIDEBAR: THÔNG TIN & NHẠC (DÙNG LỆCH CHUẨN ĐỂ HIỆN LOA)
+# SIDEBAR: THÔNG TIN & NHẠC ZING MP3
 st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
     st.session_state["role"] = None; st.rerun()
 
 st.sidebar.divider()
-st.sidebar.subheader("🎵 TEETA MUSIC")
+st.sidebar.subheader("🎵 CÀ PHÊ NHẠC NHẸ")
 
-# ĐOẠN NÀY TAO SỬA LẠI ĐỂ NÓ HIỆN RA CÁI LOA CHO MÀY BẤM NÈ
-music_url = "https://youtube.com"
+# ĐOẠN NÀY LÀ NHÚNG ZING MP3 NHƯ HÌNH MÀY GỬI
+zing_html = """
+    <iframe title="Zing MP3 Player" width="100%" height="450" 
+    src="https://zingmp3.vn" 
+    frameborder="0" allowfullscreen="true"></iframe>
+"""
 with st.sidebar:
-    st.video(music_url) # Lệnh này là hiện video YouTube chuẩn đét
-    st.caption("🎧 Bạn bấm nút Play để nghe nhạc nhé. Có thể chỉnh âm lượng tùy ý.")
+    st.components.v1.html(zing_html, height=460)
+st.sidebar.caption("🎧 Mày chọn bài hát trong danh sách để chill nhé!")
 
 df = load_data()
 
