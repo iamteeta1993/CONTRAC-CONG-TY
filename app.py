@@ -87,7 +87,7 @@ if st.session_state["role"] is None:
     with t3:
         ua = st.text_input("Tài khoản Admin", key="ua_ad")
         pa = st.text_input("Mật khẩu Admin", type="password", key="pa_ad")
-        if st.button("Đăng nhập Admin", use_container_width=True):
+        if st.button("Đăng nhập quyền Admin", use_container_width=True):
             role = authenticate(ua, pa, "admin")
             if role:
                 st.session_state["role"], st.session_state["username"] = role, "CHỦ APP"
@@ -113,7 +113,7 @@ if st.sidebar.button("Đăng xuất"):
 st.sidebar.divider()
 st.sidebar.subheader("🎵 TEETA MUSIC")
 music_id = "3I0zIK1X0vk" 
-# Tao đã thêm dấu gạch chéo / chuẩn đét vào đây rồi
+# Link chuẩn phải có dấu / sau youtube.com và chữ embed/
 music_url = f"https://youtube.com{music_id}"
 
 music_html = f"""
@@ -123,7 +123,7 @@ music_html = f"""
     <script>
       var tag = document.createElement('script');
       tag.src = "https://youtube.com";
-      var firstScriptTag = document.getElementsByTagName('script')[0];
+      var firstScriptTag = document.getElementsByTagName('script');
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
       var player;
