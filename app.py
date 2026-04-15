@@ -134,3 +134,22 @@ if not df.empty:
                             df.to_excel(DATA_FILE, index=False)
                             st.session_state[f"edit_{i}"] = False; st.rerun()
 else: st.info("Chưa có dữ liệu.")
+# --- TRÌNH PHÁT NHẠC TEETA MUSIC ---
+st.sidebar.divider()
+st.sidebar.subheader("🎵 Nhạc Làm Việc")
+
+# Link bản nhạc bạn vừa gửi
+default_music = "https://www.youtube.com/watch?v=HaIjR05n1Vc"
+
+# Tạo ô dán link (đã để sẵn link nhạc của bạn làm mặc định)
+url = st.sidebar.text_input("Dán link YouTube khác nếu muốn đổi nhạc:", value=default_music)
+
+if url:
+    # Trình phát này của Streamlit cho phép người dùng tự:
+    # 1. Bấm Dừng/Phát
+    # 2. Kéo thanh âm lượng (Tắt âm)
+    # 3. Tua nhạc
+    st.sidebar.video(url)
+    st.sidebar.caption("🎧 Bạn có thể tùy chỉnh Âm lượng hoặc Tạm dừng ngay trên thanh điều khiển phía trên.")
+
+st.sidebar.write("---")
