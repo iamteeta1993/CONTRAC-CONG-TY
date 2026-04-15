@@ -7,7 +7,7 @@ from datetime import datetime
 import urllib.parse
 import re
 
-# --- 1. CẤU HÌNH ---
+# --- 1. CẤU HÌNH HỆ THỐNG ---
 DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
@@ -109,11 +109,10 @@ st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
     st.session_state["role"] = None; st.rerun()
 
-# --- PHẦN NHẠC: SỬA LỖI LINK NHƯ TRONG ẢNH ---
+# --- PHẦN NHẠC: FIX LỖI LINK TRONG ẢNH ---
 st.sidebar.divider()
 st.sidebar.subheader("🎵 TEETA MUSIC")
-# ID nhạc chuẩn từ link bạn gửi: 3I0zIK1X0vk
-music_id = "3I0zIK1X0vk"
+music_id = "HaIjR05n1Vc" # Link nhạc Lo-fi mới nhất của bạn
 music_html = f"""
     <iframe width="100%" height="180" 
     src="https://youtube.com{music_id}?autoplay=1&mute=0&enablejsapi=1" 
@@ -121,7 +120,7 @@ music_html = f"""
     <script>
       var tag = document.createElement('script');
       tag.src = "https://youtube.com";
-      var firstScriptTag = document.getElementsByTagName('script')[0];
+      var firstScriptTag = document.getElementsByTagName('script');
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
       var player;
@@ -139,7 +138,7 @@ music_html = f"""
 """
 with st.sidebar:
     st.components.v1.html(music_html, height=200)
-st.sidebar.caption("🎧 Nhạc tự phát 50%. Tương tác với màn hình để kích hoạt âm thanh.")
+st.sidebar.caption("🎧 Nhạc tự phát 50%. Hãy chạm vào màn hình App 1 lần để kích hoạt tiếng.")
 
 df = load_data()
 
@@ -147,7 +146,7 @@ df = load_data()
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_mst = st.sidebar.text_input("🔍 Gõ MST tra cứu")
+    search_mst = st.sidebar.text_input("🔍 Gõ MST tra cứu nhanh")
     n_v, a_v = "", ""
     if search_mst:
         info = get_business_info(search_mst)
