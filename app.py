@@ -203,3 +203,38 @@ if not df.empty:
                             st.rerun()
 else:
     st.info("Chưa có dữ liệu. Hãy thêm ở cột bên trái.")
+# --- PHẦN NHẠC TEETA MUSIC (BẢN CHUẨN KHÔNG LỖI) ---
+st.sidebar.divider()
+st.sidebar.subheader("🎵 TEETA MUSIC")
+
+music_html = """
+    <div id="player"></div>
+    <script src="https://youtube.com"></script>
+    <script>
+        var player;
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '180',
+                width: '100%',
+                videoId: 'HaIjR05n1Vc',
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 1,
+                    'mute': 0
+                },
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+        }
+        function onPlayerReady(event) {
+            event.target.setVolume(50); 
+            event.target.playVideo();
+        }
+    </script>
+"""
+
+with st.sidebar:
+    st.components.v1.html(music_html, height=200)
+
+st.sidebar.caption("🎧 Nhạc tự phát 50%. Tương tác với màn hình để nghe nhạc.")
