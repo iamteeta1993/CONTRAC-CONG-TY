@@ -9,7 +9,7 @@ USER_FILE = "users.xlsx"
 DATA_FILE = "data_congty.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo"]
 
-# --- 2. HÀM HỆ THỐNG (TÀI KHOẢN & BẢO MẬT) ---
+# --- 2. HÀM HỆ THỐNG ---
 def hash_password(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
@@ -55,56 +55,58 @@ def load_data():
     return pd.DataFrame(columns=COLUMNS)
 
 # --- 3. GIAO DIỆN ĐĂNG NHẬP / ĐĂNG KÝ ---
-st.set_page_config(page_title="TEETA CODE - Quản Lý Công Ty", layout="wide")
+st.set_page_config(page_title="TEETA CODE", layout="wide")
+
+# CSS để làm đẹp giao diện
+st.markdown("""
+    <style>
+    .main-title {
+        text-align: center;
+        color: #FF4B4B;
+        font-family: 'Arial Black';
+        font-size: 45px;
+        margin-bottom: 30px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
 if not st.session_state["logged_in"]:
-    # Logo cho trang đăng nhập
-    st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
+    st.markdown('<h1 class="main-title">TEETA CODE</h1>', unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký tài khoản"])
-    
-    with tab1:
-        u1 = st.text_input("Tên đăng nhập", key="u1")
-        p1 = st.text_input("Mật khẩu", type="password", key="p1")
-        if st.button("Xác nhận Đăng nhập"):
-            if authenticate(u1, p1):
-                st.session_state["logged_in"] = True
-                st.session_state["username"] = u1
-                st.rerun()
-            else:
-                st.error("Sai tài khoản hoặc mật khẩu!")
-
-    with tab2:
-        u2 = st.text_input("Tạo tên đăng nhập", key="u2")
-        p2 = st.text_input("Tạo mật khẩu", type="password", key="p2")
-        if st.button("Hoàn tất Đăng ký"):
-            if u2 and p2:
-                if save_user(u2, p2):
-                    st.success("Tạo tài khoản thành công! Mời bạn qua tab Đăng nhập.")
+    # Tạo khung đăng nhập ở giữa màn hình
+    col_l, col_main, col_r = st.columns([1, 2, 1])
+    with col_main:
+        tab1, tab2 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký tài khoản"])
+        
+        with tab1:
+            u1 = st.text_input("Tên đăng nhập", key="login_u")
+            p1 = st.text_input("Mật khẩu", type="password", key="login_p")
+            if st.button("Xác nhận Đăng nhập", use_container_width=True):
+                if authenticate(u1, p1):
+                    st.session_state["logged_in"] = True
+                    st.session_state["username"] = u1
+                    st.rerun()
                 else:
-                    st.error("Tên đăng nhập này đã tồn tại!")
-            else:
-                st.warning("Vui lòng nhập đủ thông tin.")
+                    st.error("Sai tài khoản hoặc mật khẩu!")
+
+        with tab2:
+            u2 = st.text_input("Tạo tên đăng nhập", key="reg_u")
+            p2 = st.text_input("Tạo mật khẩu", type="password", key="reg_p")
+            if st.button("Hoàn tất Đăng ký", use_container_width=True):
+                if u2 and p2:
+                    if save_user(u2, p2):
+                        st.success("Tạo tài khoản thành công! Hãy qua tab Đăng nhập.")
+                    else:
+                        st.error("Tên đăng nhập đã tồn tại!")
+                else:
+                    st.warning("Vui lòng nhập đủ thông tin.")
     st.stop()
 
-# --- 4. GIAO DIỆN CHÍNH (SAU KHI ĐĂNG NHẬP) ---
-
-# Hiển thị Logo TEETA CODE ở giữa trên cùng
-st.markdown(
-    """
-    <div style="text-align: center; margin-top: -60px; margin-bottom: 10px;">
-        <h1 style="color: #FF4B4B; font-family: 'Arial Black'; font-size: 45px; letter-spacing: 2px; text-shadow: 2px 2px #ddd;">
-            TEETA <span style="color: #31333F;">CODE</span>
-        </h1>
-        <p style="color: gray; font-style: italic; margin-top: -15px;">Hệ Thống Quản Lý Dữ Liệu Doanh Nghiệp Nội Bộ</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
+# --- 4. GIAO DIỆN CHÍNH SAU KHI ĐĂNG NHẬP ---
+st.markdown('<h1 class="main-title">TEETA CODE</h1>', unsafe_allow_html=True)
 st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
     st.session_state["logged_in"] = False
@@ -112,18 +114,17 @@ if st.sidebar.button("Đăng xuất"):
 
 df = load_data()
 
-# SIDEBAR: THÊM CÔNG TY MỚI
+# SIDEBAR: THÊM CÔNG TY
 st.sidebar.divider()
 st.sidebar.subheader("➕ Thêm Công Ty")
-search_api = st.sidebar.text_input("🔍 Tra cứu nhanh (Tên hoặc MST)")
+search_api = st.sidebar.text_input("🔍 Tra cứu (Tên hoặc MST)")
 
 name_v, mst_v, addr_v = "", "", ""
 if search_api:
-    with st.sidebar.spinner('Đang lấy dữ liệu...'):
-        info = get_business_info(search_api)
-        if info:
-            name_v, mst_v, addr_v = info.get('name', ''), info.get('id', ''), info.get('address', '')
-            st.sidebar.success("Tìm thấy thông tin!")
+    info = get_business_info(search_api)
+    if info:
+        name_v, mst_v, addr_v = info.get('name', ''), info.get('id', ''), info.get('address', '')
+        st.sidebar.success("Tìm thấy thông tin!")
 
 with st.sidebar.form("add_form", clear_on_submit=True):
     f_name = st.text_input("Tên Công Ty", value=name_v)
@@ -131,36 +132,24 @@ with st.sidebar.form("add_form", clear_on_submit=True):
     f_owner = st.text_input("Chủ Doanh Nghiệp")
     f_addr = st.text_input("Địa Chỉ", value=addr_v)
     f_phone = st.text_input("Số Điện Thoại")
-    
-    if st.form_submit_button("Lưu Vào Hệ Thống"):
+    if st.form_submit_button("Lưu Vào Hệ Thống", use_container_width=True):
         if f_name and f_mst:
             new_row = pd.DataFrame([[f_name, f_mst, f_owner, f_addr, f_phone, f"https://zalo.me{f_phone}"]], columns=COLUMNS)
             df = pd.concat([df, new_row], ignore_index=True)
             df.to_excel(DATA_FILE, index=False)
-            st.success("Đã lưu thành công!")
             st.rerun()
-        else:
-            st.error("Vui lòng nhập Tên và MST")
 
-# TRANG CHÍNH: HIỂN THỊ DANH SÁCH
-q = st.text_input("🔎 Tìm kiếm nhanh trong danh sách của bạn...")
-
+# TRANG CHÍNH: HIỂN THỊ
+q = st.text_input("🔎 Tìm kiếm nhanh công ty đã lưu...")
 if not df.empty:
     display_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | 
                     df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
-    
     for i, row in display_df.iterrows():
         with st.expander(f"🏢 {row['Tên Công Ty']} - MST: {row['Mã Số Thuế']}"):
-            c1, c2 = st.columns(2)
-            with c1:
-                st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']}")
-                st.write(f"📍 **Địa chỉ:** {row['Địa Chỉ']}")
-            with c2:
-                st.write(f"📞 **SĐT:** {row['Liên Hệ']}")
-                st.write(f"💬 [Nhắn Zalo ngay]({row['Zalo']})")
-            
+            st.write(f"📍 **ĐC:** {row['Địa Chỉ']} | 👤 **Chủ:** {row['Chủ Doanh Nghiệp']}")
+            st.write(f"📞 **SĐT:** {row['Liên Hệ']} | [💬 Nhắn Zalo]({row['Zalo']})")
             if st.button(f"🗑️ Xóa", key=f"del_{i}"):
                 df.drop(i).to_excel(DATA_FILE, index=False)
                 st.rerun()
 else:
-    st.info("Chưa có dữ liệu. Bạn hãy thêm công ty ở cột bên trái nhé!")
+    st.info("Chưa có dữ liệu.")
