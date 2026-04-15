@@ -84,7 +84,7 @@ if st.session_state["role"] == "admin":
         f_name = st.text_input("Tên", value=name_v)
         f_mst = st.text_input("MST", value=mst_v)
         f_owner = st.text_input("Chủ")
-        f_addr = st.text_input("Địa chỉ (Sẽ dùng để tìm Maps)", value=addr_v)
+        f_addr = st.text_input("Địa chỉ", value=addr_v)
         f_phone = st.text_input("SĐT")
         if st.form_submit_button("Lưu Mới"):
             now = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -101,25 +101,28 @@ if not df.empty:
             c1, c2 = st.columns(2)
             with c1:
                 st.write(f"📍 **ĐC:** {row['Địa Chỉ']}")
-                # NÚT GOOGLE MAPS: Tự động tạo link tìm kiếm theo địa chỉ
-                maps_url = f"https://google.com{urllib.parse.quote(str(row['Địa Chỉ']))}"
-                st.markdown(f"[🌍 Xem trên Google Maps]({maps_url})")
+                
+                # --- SỬA LỖI GOOGLE MAPS TẠI ĐÂY ---
+                address_raw = str(row['Địa Chỉ'])
+                if address_raw and address_raw != "nan":
+                    # Mã hóa địa chỉ để tránh lỗi ký tự đặc biệt
+                    clean_address = urllib.parse.quote(address_raw)
+                    maps_url = f"https://google.com{clean_address}"
+                    st.markdown(f"🔗 [🌍 Xem vị trí trên Google Maps]({maps_url})")
+                
                 st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']}")
                 st.caption(f"🕒 Cập nhật: {row['Cập Nhật Cuối']}")
             with c2:
                 st.write(f"📞 **SĐT:** {row['Liên Hệ']}")
-                st.markdown(f"[💬 Nhắn Zalo]({row['Zalo']})")
+                st.markdown(f"[💬 Nhắn Zalo ngay]({row['Zalo']})")
             
-            # CHỨC NĂNG ADMIN: SỬA & XÓA
+            # QUYỀN ADMIN
             if st.session_state["role"] == "admin":
                 col_e, col_d = st.columns(2)
                 with col_e:
                     if st.button(f"📝 Sửa", key=f"e_{i}"): st.session_state[f"edit_{i}"] = True
                 with col_d:
-                    if st.button(f"🗑️ Xóa", key=f"d_{i}"): 
-                        df = df.drop(i)
-                        df.to_excel(DATA_FILE, index=False)
-                        st.rerun()
+                    if st.button(f"🗑️ Xóa", key=f"d_{i}"): df.drop(i).to_excel(DATA_FILE, index=False); st.rerun()
                 
                 if st.session_state.get(f"edit_{i}"):
                     with st.form(f"f_edit_{i}"):
