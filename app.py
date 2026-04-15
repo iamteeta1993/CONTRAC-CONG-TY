@@ -13,7 +13,7 @@ USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
 
 ADMIN_USER = "admin" 
-ADMIN_PASS = "teeta123"
+ADMIN_PASS = "123"
 
 # --- 2. CÁC HÀM XỬ LÝ (BACKEND) ---
 def hash_password(password):
