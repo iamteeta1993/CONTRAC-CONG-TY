@@ -9,26 +9,25 @@ import urllib.parse
 # --- 1. CẤU HÌNH HỆ THỐNG ---
 USER_FILE = "users.xlsx"
 DATA_FILE = "data_congty.xlsx"
+# Hệ thống chạy chuẩn 7 cột dữ liệu
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
 
 ADMIN_USER = "admin" 
 ADMIN_PASS = "teeta123"
 
-# --- 2. HÀM HỆ THỐNG ---
+# --- 2. CÁC HÀM XỬ LÝ DỮ LIỆU ---
 def hash_password(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
-
-def load_users():
-    if os.path.exists(USER_FILE):
-        return pd.read_excel(USER_FILE, dtype=str)
-    return pd.DataFrame(columns=["username", "password"])
 
 def authenticate(username, password, login_type):
     if login_type == "admin":
         return "admin" if username == ADMIN_USER and password == ADMIN_PASS else None
-    users = load_users()
-    hashed_pwd = hash_password(password)
-    return "user" if not users[(users["username"] == username) & (users["password"] == hashed_pwd)].empty else None
+    if os.path.exists(USER_FILE):
+        users = pd.read_excel(USER_FILE, dtype=str)
+        hashed_pwd = hash_password(password)
+        if not users[(users["username"] == username) & (users["password"] == hashed_pwd)].empty:
+            return "user"
+    return None
 
 def get_business_info(keyword):
     try:
@@ -38,40 +37,47 @@ def get_business_info(keyword):
 
 def load_data():
     if os.path.exists(DATA_FILE):
-        df = pd.read_excel(DATA_FILE, dtype=str)
-        for col in COLUMNS:
-            if col not in df.columns: df[col] = "Chưa cập nhật"
-        return df
+        try:
+            df = pd.read_excel(DATA_FILE, dtype=str)
+            # Tự động sửa lỗi nếu file thiếu cột hoặc thừa cột
+            for col in COLUMNS:
+                if col not in df.columns: df[col] = "Chưa có"
+            return df[COLUMNS]
+        except:
+            return pd.DataFrame(columns=COLUMNS)
     return pd.DataFrame(columns=COLUMNS)
 
 # --- 3. GIAO DIỆN ĐĂNG NHẬP ---
-st.set_page_config(page_title="TEETA CODE", layout="wide")
+st.set_page_config(page_title="TEETA CODE - QUẢN TRỊ", layout="wide")
 if "role" not in st.session_state: st.session_state["role"] = None
 
 if st.session_state["role"] is None:
     st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
     t1, t2, t3 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Quản trị viên"])
+    with t3:
+        ua = st.text_input("Tài khoản Admin", key="ua")
+        pa = st.text_input("Mật khẩu Admin", type="password", key="pa")
+        if st.button("Đăng nhập quyền Quản trị", use_container_width=True):
+            role = authenticate(ua, pa, "admin")
+            if role:
+                st.session_state["role"], st.session_state["username"] = role, "CHỦ APP"
+                st.rerun()
+            else: st.error("Sai thông tin Quản trị viên!")
     with t1:
-        u = st.text_input("Tên đăng nhập")
-        p = st.text_input("Mật khẩu", type="password")
-        if st.button("Vào App"):
+        u = st.text_input("User", key="u")
+        p = st.text_input("Pass", type="password", key="p")
+        if st.button("Vào xem dữ liệu"):
             role = authenticate(u, p, "user")
             if role: st.session_state["role"], st.session_state["username"] = role, u; st.rerun()
-    with t3:
-        ua = st.text_input("Admin User")
-        pa = st.text_input("Admin Pass", type="password")
-        if st.button("Vào quyền Quản trị"):
-            role = authenticate(ua, pa, "admin")
-            if role: st.session_state["role"], st.session_state["username"] = role, "CHỦ APP"; st.rerun()
     st.stop()
 
-# --- 4. GIAO DIỆN CHÍNH ---
-st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE {'(QUẢN TRỊ)' if st.session_state['role'] == 'admin' else ''}</h1>", unsafe_allow_html=True)
+# --- 4. GIAO DIỆN CHÍNH (SAU KHI ĐĂNG NHẬP) ---
+st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE {'(ADMIN)' if st.session_state['role'] == 'admin' else ''}</h1>", unsafe_allow_html=True)
 if st.sidebar.button("Đăng xuất"): st.session_state["role"] = None; st.rerun()
 
 df = load_data()
 
-# ADMIN: THÊM MỚI
+# SIDEBAR: THÊM MỚI (CHỈ ADMIN)
 if st.session_state["role"] == "admin":
     st.sidebar.subheader("➕ Thêm Công Ty")
     search_api = st.sidebar.text_input("🔍 Tra cứu nhanh MST/Tên")
@@ -86,53 +92,57 @@ if st.session_state["role"] == "admin":
         f_owner = st.text_input("Chủ")
         f_addr = st.text_input("Địa chỉ", value=addr_v)
         f_phone = st.text_input("SĐT")
-        if st.form_submit_button("Lưu Mới"):
+        if st.form_submit_button("Lưu Mới", use_container_width=True):
             now = datetime.now().strftime("%d/%m/%Y %H:%M")
             new_row = pd.DataFrame([[f_name, f_mst, f_owner, f_addr, f_phone, f"https://zalo.me{f_phone}", now]], columns=COLUMNS)
             df = pd.concat([df, new_row], ignore_index=True)
             df.to_excel(DATA_FILE, index=False); st.rerun()
 
-# TRA CỨU & HIỂN THỊ
-q = st.text_input("🔎 Tìm nhanh công ty...")
+# TRANG CHÍNH: HIỂN THỊ & SỬA ĐỔI
+q = st.text_input("🔎 Tìm nhanh trong danh sách của bạn...")
 if not df.empty:
-    display_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
-    for i, row in display_df.iterrows():
+    filtered_df = df[df['Tên Công Ty'].astype(str).str.contains(q, case=False, na=False) | df['Mã Số Thuế'].astype(str).str.contains(q, case=False, na=False)] if q else df
+    
+    for i, row in filtered_df.iterrows():
         with st.expander(f"🏢 {row['Tên Công Ty']} - MST: {row['Mã Số Thuế']}"):
             c1, c2 = st.columns(2)
             with c1:
                 st.write(f"📍 **ĐC:** {row['Địa Chỉ']}")
-                
-                # --- SỬA LỖI GOOGLE MAPS TẠI ĐÂY ---
-                address_raw = str(row['Địa Chỉ'])
-                if address_raw and address_raw != "nan":
-                    # Mã hóa địa chỉ để tránh lỗi ký tự đặc biệt
-                    clean_address = urllib.parse.quote(address_raw)
-                    maps_url = f"https://google.com{clean_address}"
-                    st.markdown(f"🔗 [🌍 Xem vị trí trên Google Maps]({maps_url})")
-                
-                st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']}")
+                # Link Google Maps tự động
+                clean_addr = urllib.parse.quote(str(row['Địa Chỉ']))
+                st.markdown(f"[🌍 Xem vị trí trên Google Maps](https://google.com{clean_addr})")
                 st.caption(f"🕒 Cập nhật: {row['Cập Nhật Cuối']}")
             with c2:
-                st.write(f"📞 **SĐT:** {row['Liên Hệ']}")
-                st.markdown(f"[💬 Nhắn Zalo ngay]({row['Zalo']})")
+                st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']} | 📞 **SĐT:** {row['Liên Hệ']}")
+                st.markdown(f"[💬 Nhắn Zalo]({row['Zalo']})")
             
-            # QUYỀN ADMIN
+            # --- CHỨC NĂNG SỬA TRỰC TIẾP CHO QUẢN TRỊ VIÊN ---
             if st.session_state["role"] == "admin":
-                col_e, col_d = st.columns(2)
-                with col_e:
-                    if st.button(f"📝 Sửa", key=f"e_{i}"): st.session_state[f"edit_{i}"] = True
-                with col_d:
-                    if st.button(f"🗑️ Xóa", key=f"d_{i}"): df.drop(i).to_excel(DATA_FILE, index=False); st.rerun()
+                col_edit, col_del = st.columns(2)
+                with col_edit:
+                    if st.button(f"📝 Sửa thông tin", key=f"btn_e_{i}"): st.session_state[f"edit_mode_{i}"] = True
+                with col_del:
+                    if st.button(f"🗑️ Xóa", key=f"btn_d_{i}"):
+                        df = df.drop(i)
+                        df.to_excel(DATA_FILE, index=False); st.rerun()
                 
-                if st.session_state.get(f"edit_{i}"):
-                    with st.form(f"f_edit_{i}"):
-                        en = st.text_input("Tên", value=row['Tên Công Ty'])
-                        em = st.text_input("MST", value=row['Mã Số Thuế'])
-                        eo = st.text_input("Chủ", value=row['Chủ Doanh Nghiệp'])
-                        ea = st.text_input("Địa chỉ", value=row['Địa Chỉ'])
-                        ep = st.text_input("SĐT", value=row['Liên Hệ'])
-                        if st.form_submit_button("Xác nhận Cập nhật"):
-                            df.loc[i] = [en, em, eo, ea, ep, f"https://zalo.me{ep}", datetime.now().strftime("%d/%m/%Y %H:%M")]
+                # Form hiện ra khi bấm nút Sửa
+                if st.session_state.get(f"edit_mode_{i}"):
+                    with st.form(f"form_edit_{i}"):
+                        st.write("--- **CHỈNH SỬA TRỰC TIẾP** ---")
+                        en = st.text_input("Tên Công Ty", value=row['Tên Công Ty'])
+                        em = st.text_input("Mã Số Thuế", value=row['Mã Số Thuế'])
+                        eo = st.text_input("Chủ Doanh Nghiệp", value=row['Chủ Doanh Nghiệp'])
+                        ea = st.text_input("Địa Chỉ", value=row['Địa Chỉ'])
+                        ep = st.text_input("Số Điện Thoại", value=row['Liên Hệ'])
+                        
+                        if st.form_submit_button("Xác nhận Cập nhật", use_container_width=True):
+                            now_time = datetime.now().strftime("%d/%m/%Y %H:%M")
+                            # Cập nhật đúng 7 giá trị cho 7 cột để tránh lỗi ValueError
+                            df.iloc[i] = [en, em, eo, ea, ep, f"https://zalo.me{ep}", now_time]
                             df.to_excel(DATA_FILE, index=False)
-                            st.session_state[f"edit_{i}"] = False; st.rerun()
-else: st.info("Chưa có dữ liệu.")
+                            st.session_state[f"edit_mode_{i}"] = False
+                            st.success("Đã cập nhật dữ liệu mới!")
+                            st.rerun()
+else:
+    st.info("Chưa có dữ liệu. Hãy thêm ở cột bên trái.")
