@@ -12,7 +12,7 @@ DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
 ADMIN_USER = "admin" 
-ADMIN_PASS = "123"
+ADMIN_PASS = "teeta123"
 
 # --- 2. HÀM HỆ THỐNG ---
 def hash_password(password):
@@ -38,9 +38,9 @@ def save_user(username, password):
     pd.concat([users, new_user], ignore_index=True).to_excel(USER_FILE, index=False)
     return True
 
-def get_business_info(keyword):
+def get_business_info(mst):
     try:
-        res = requests.get(f"https://vietqr.io{keyword}", timeout=5)
+        res = requests.get(f"https://vietqr.io{mst}", timeout=5)
         return res.json()['data'] if res.status_code == 200 and res.json()['code'] == "00" else None
     except: return None
 
@@ -65,8 +65,6 @@ if "role" not in st.session_state:
 
 if st.session_state["role"] is None:
     st.markdown("<h1 style='text-align: center; color: #FF4B4B; font-family: Arial Black;'>TEETA CODE</h1>", unsafe_allow_html=True)
-    
-    # THÊM TAB KHÁCH ĐÚNG VỊ TRÍ BẠN KHOANH ĐỎ
     t1, t2, t3, t4 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Quản trị viên", "🌐 Vào App (Khách)"])
     
     with t1:
@@ -97,8 +95,8 @@ if st.session_state["role"] is None:
             else: st.error("Thông tin Admin không chính xác!")
 
     with t4:
-        st.info("Chế độ Khách: Chỉ xem và tìm kiếm, không thể thêm/sửa/xóa.")
-        if st.button("VÀO XEM NGAY (KHÔNG CẦN ĐĂNG NHẬP)", use_container_width=True):
+        st.info("Chế độ Khách: Chỉ xem thông tin, không thể thêm/sửa/xóa.")
+        if st.button("VÀO XEM NGAY (FREE)", use_container_width=True):
             st.session_state["role"] = "guest"
             st.session_state["username"] = "Khách"
             st.rerun()
@@ -111,19 +109,17 @@ st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
     st.session_state["role"] = None; st.rerun()
 
-# --- PHẦN NHẠC FIX LỖI AUTOPLAY ---
+# --- PHẦN NHẠC: SỬA LỖI LINK TRONG ẢNH CỦA BẠN ---
 st.sidebar.divider()
 st.sidebar.subheader("🎵 TEETA MUSIC")
-music_id = "3I0zIK1X0vk" # ID nhạc Lo-fi bạn chọn
+music_id = "3I0zIK1X0vk" # Đây là mã bài hát Lo-fi
+# Link chuẩn phải có /embed/ và ngăn cách rõ ràng
 music_html = f"""
-    <iframe width="100%" height="150" 
+    <iframe width="100%" height="180" 
     src="https://youtube.com{music_id}?autoplay=1&mute=1&enablejsapi=1" 
-    frameborder="0" id="video-player" allow="autoplay"></iframe>
+    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     <script>
-      var tag = document.createElement('script');
-      tag.src = "https://youtube.com";
-      var firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      // Mã này giúp tự động bật tiếng khi bạn chạm vào màn hình
       var player;
       function onYouTubeIframeAPIReady() {{
         player = new YT.Player('video-player', {{
@@ -131,7 +127,6 @@ music_html = f"""
             'onReady': function(event) {{
               event.target.setVolume(50);
               event.target.unMute();
-              event.target.playVideo();
             }}
           }}
         }});
@@ -139,29 +134,29 @@ music_html = f"""
     </script>
 """
 with st.sidebar:
-    st.components.v1.html(music_html, height=180)
-st.sidebar.caption("🎧 Nhạc tự phát 50%. Nếu không nghe thấy, hãy chạm vào màn hình App 1 lần.")
+    st.components.v1.html(music_html, height=200)
+st.sidebar.caption("🎧 Nhạc tự phát 50%. Hãy chạm vào App 1 lần để nghe tiếng.")
 
 df = load_data()
 
-# PHÂN QUYỀN: CHỈ ADMIN MỚI THÊM ĐƯỢC
+# PHÂN QUYỀN
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_api = st.sidebar.text_input("🔍 Tra cứu nhanh")
-    n_v, m_v, a_v = "", "", ""
-    if search_api:
-        info = get_business_info(search_api)
-        if info: n_v, m_v, a_v = info.get('name', ''), info.get('id', ''), info.get('address', '')
+    search_mst = st.sidebar.text_input("🔍 Gõ MST để tra cứu nhanh")
+    n_v, a_v = "", ""
+    if search_mst:
+        info = get_business_info(search_mst)
+        if info: n_v, a_v = info.get('name', ''), info.get('address', '')
     with st.sidebar.form("add", clear_on_submit=True):
-        fn = st.text_input("Tên", value=n_v); fm = st.text_input("MST", value=m_v); fp = st.text_input("SĐT")
+        fn = st.text_input("Tên", value=n_v); fm = st.text_input("MST", value=search_mst); fp = st.text_input("SĐT")
         if st.form_submit_button("Lưu"):
             now = datetime.now().strftime("%d/%m/%Y %H:%M")
             new_row = pd.DataFrame([[fn, fm, "", a_v, fp, f"https://zalo.me{clean_phone(fp)}", now]], columns=COLUMNS)
             df = pd.concat([df, new_row], ignore_index=True)
             df.to_excel(DATA_FILE, index=False); st.rerun()
 
-# TRA CỨU
+# HIỂN THỊ
 q = st.text_input("🔎 Tìm công ty...")
 if not df.empty:
     f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
