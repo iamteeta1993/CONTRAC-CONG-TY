@@ -153,3 +153,38 @@ if url:
     st.sidebar.caption("🎧 Bạn có thể tùy chỉnh Âm lượng hoặc Tạm dừng ngay trên thanh điều khiển phía trên.")
 
 st.sidebar.write("---")
+# --- TRÌNH PHÁT NHẠC THÔNG MINH (AUTOPLAY 50%) ---
+st.sidebar.divider()
+st.sidebar.subheader("🎵 TEETA MUSIC")
+
+# Sử dụng mã nhúng HTML để kiểm soát âm lượng 50%
+st.sidebar.components.v1.html(
+    """
+    <div id="player"></div>
+    <script src="https://youtube.com"></script>
+    <script>
+        var player;
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '180',
+                width: '100%',
+                videoId: 'HaIjR05n1Vc',
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 1,
+                    'mute': 0
+                },
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+        }
+        function onPlayerReady(event) {
+            event.target.setVolume(50); 
+            event.target.playVideo();
+        }
+    </script>
+    """,
+    height=200,
+)
+st.sidebar.caption("🎧 Nhạc tự phát 50%. Bạn có thể tùy chỉnh to nhỏ.")
