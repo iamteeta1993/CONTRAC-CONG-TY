@@ -1,110 +1,89 @@
 import streamlit as st
 import pandas as pd
 import os
+import requests
 
-# --- CẤU HÌNH MẬT KHẨU ---
+# --- CẤU HÌNH ---
 PASSWORD = "teeta123" 
 
-def check_password():
-    if "password_correct" not in st.session_state:
-        st.text_input("Vui lòng nhập mật khẩu để sử dụng App", type="password", on_change=password_entered, key="password")
-        return False
-    elif not st.session_state["password_correct"]:
-        st.text_input("Mật khẩu sai, vui lòng nhập lại", type="password", on_change=password_entered, key="password")
-        st.error("😕 Sai mật khẩu rồi bạn ơi!")
-        return False
-    else:
-        return True
+def get_business_info(keyword):
+    """Tìm kiếm thông tin doanh nghiệp theo Tên hoặc MST."""
+    try:
+        # Sử dụng API tìm kiếm doanh nghiệp
+        response = requests.get(f"https://vietqr.io{keyword}")
+        if response.status_code == 200:
+            data = response.json()
+            if data['code'] == "00":
+                return data['data']
+        return None
+    except:
+        return None
 
-def password_entered():
-    if st.session_state["password"] == PASSWORD:
-        st.session_state["password_correct"] = True
-        del st.session_state["password"]
-    else:
-        st.session_state["password_correct"] = False
+if "password_correct" not in st.session_state:
+    st.set_page_config(page_title="Đăng nhập")
+    st.text_input("Vui lòng nhập mật khẩu", type="password", key="pwd_input")
+    if st.button("Xác nhận"):
+        if st.session_state.pwd_input == PASSWORD:
+            st.session_state.password_correct = True
+            st.rerun()
+        else:
+            st.error("Sai mật khẩu!")
+    st.stop()
 
 # --- CHƯƠNG TRÌNH CHÍNH ---
-if check_password():
-    EXCEL_FILE = "data_congty.xlsx"
+EXCEL_FILE = "data_congty.xlsx"
+def load_data():
+    if os.path.exists(EXCEL_FILE):
+        return pd.read_excel(EXCEL_FILE, dtype=str)
+    return pd.DataFrame(columns=["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo"])
 
-    def load_data():
-        if os.path.exists(EXCEL_FILE):
-            # Đảm bảo MST và SĐT luôn là chuỗi (string) để không mất số 0
-            df = pd.read_excel(EXCEL_FILE, dtype={'Mã Số Thuế': str, 'Liên Hệ': str})
-            return df
+st.set_page_config(page_title="Quản Lý Công Ty", layout="wide")
+df = load_data()
+
+st.sidebar.title("➕ Thêm Công Ty")
+# Ô TÌM KIẾM THÔNG MINH
+search_query = st.sidebar.text_input("🔍 Nhập Tên Công Ty hoặc MST để lấy thông tin tự động")
+
+name_val, mst_val, addr_val = "", "", ""
+
+if search_query:
+    with st.sidebar.spinner('Đang lấy dữ liệu từ hệ thống...'):
+        info = get_business_info(search_query)
+        if info:
+            name_val = info.get('name', '')
+            mst_val = info.get('id', '')
+            addr_val = info.get('address', '')
+            st.sidebar.success("✅ Tìm thấy dữ liệu!")
         else:
-            return pd.DataFrame(columns=["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo"])
+            st.sidebar.warning("❌ Không tìm thấy, bạn hãy tự điền tay nhé.")
 
-    st.set_page_config(page_title="Quản Lý Công Ty", layout="wide")
-    st.title("📂 Hệ Thống Quản Lý Thông Tin Công Ty")
+with st.sidebar.form("add_form", clear_on_submit=True):
+    final_name = st.text_input("Tên Công Ty", value=name_val)
+    final_mst = st.text_input("Mã Số Thuế", value=mst_val)
+    final_owner = st.text_input("Chủ Doanh Nghiệp")
+    final_addr = st.text_input("Địa Chỉ", value=addr_val)
+    final_phone = st.text_input("Số Điện Thoại Zalo")
     
-    if st.sidebar.button("Đăng xuất"):
-        st.session_state["password_correct"] = False
+    if st.form_submit_button("Lưu Vào Danh Sách"):
+        new_row = pd.DataFrame([{
+            "Tên Công Ty": final_name, "Mã Số Thuế": final_mst,
+            "Chủ Doanh Nghiệp": final_owner, "Địa Chỉ": final_addr,
+            "Liên Hệ": final_phone, "Zalo": f"https://zalo.me{final_phone}"
+        }])
+        df = pd.concat([df, new_row], ignore_index=True)
+        df.to_excel(EXCEL_FILE, index=False)
+        st.success("Đã lưu!")
         st.rerun()
 
-    df = load_data()
+st.title("📂 Danh Sách Công Ty Của Bạn")
+search_local = st.text_input("🔎 Tìm nhanh trong danh sách đã lưu...")
+display_df = df[df['Tên Công Ty'].str.contains(search_local, case=False, na=False)] if search_local else df
 
-    # --- CỘT BÊN TRÁI: THÊM MỚI ---
-    st.sidebar.header("➕ Thêm Công Ty Mới")
-    with st.sidebar.form("add_form", clear_on_submit=True):
-        new_name = st.text_input("Tên Công Ty")
-        new_mst = st.text_input("Mã Số Thuế")
-        new_owner = st.text_input("Chủ Doanh Nghiệp")
-        new_addr = st.text_input("Địa Chỉ")
-        new_phone = st.text_input("Số Điện Thoại")
-        submit = st.form_submit_button("Lưu Vào Excel")
-
-        if submit:
-            if new_name and new_mst:
-                new_data = {
-                    "Tên Công Ty": [new_name],
-                    "Mã Số Thuế": [new_mst],
-                    "Chủ Doanh Nghiệp": [new_owner],
-                    "Địa Chỉ": [new_addr],
-                    "Liên Hệ": [new_phone],
-                    "Zalo": [f"https://zalo.me{new_phone}"]
-                }
-                new_df = pd.DataFrame(new_data)
-                df = pd.concat([df, new_df], ignore_index=True)
-                df.to_excel(EXCEL_FILE, index=False)
-                st.sidebar.success("Đã lưu thành công!")
-                st.rerun()
-            else:
-                st.sidebar.error("Vui lòng nhập ít nhất Tên và MST")
-
-    # --- PHẦN CHÍNH: TÌM KIẾM VÀ HIỂN THỊ ---
-    search_term = st.text_input("🔍 Nhập tên hoặc mã số thuế để tìm nhanh...", "")
-
-    if search_term:
-        filtered_df = df[
-            df['Tên Công Ty'].astype(str).str.contains(search_term, case=False, na=False) |
-            df['Mã Số Thuế'].astype(str).str.contains(search_term, case=False, na=False)
-        ]
-    else:
-        filtered_df = df
-
-    if not filtered_df.empty:
-        for index, row in filtered_df.iterrows():
-            with st.expander(f"🏢 {row['Tên Công Ty']} - MST: {row['Mã Số Thuế']}"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"**👤 Chủ:** {row['Chủ Doanh Nghiệp']}")
-                    st.write(f"**📍 Địa chỉ:** {row['Địa Chỉ']}")
-                with col2:
-                    st.write(f"**📞 SĐT:** {row['Liên Hệ']}")
-                    st.write(f"**💬 Zalo:** [Mở chat Zalo]({row['Zalo']})")
-                
-                # Nút Xóa và Sửa
-                c1, c2 = st.columns([1, 5])
-                with c1:
-                    if st.button("🗑️ Xóa", key=f"del_{index}"):
-                        df = df.drop(index)
-                        df.to_excel(EXCEL_FILE, index=False)
-                        st.success("Đã xóa!")
-                        st.rerun()
-                with c2:
-                    if st.button("📝 Sửa nhanh", key=f"edit_{index}"):
-                        st.info("Để sửa, bạn hãy nhập lại thông tin vào cột bên trái với đúng Tên & MST cũ, hệ thống sẽ cập nhật (hoặc bạn có thể sửa trực tiếp trong file Excel rồi upload lại GitHub).")
-
-    else:
-        st.info("Chưa có dữ liệu hoặc không tìm thấy.")
+for i, row in display_df.iterrows():
+    with st.expander(f"🏢 {row['Tên Công Ty']} - {row['Mã Số Thuế']}"):
+        st.write(f"📍 **Địa chỉ:** {row['Địa Chỉ']}")
+        st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']} | 📞 **SĐT:** {row['Liên Hệ']}")
+        st.write(f"💬 [Nhắn Zalo ngay]({row['Zalo']})")
+        if st.button("🗑️ Xóa", key=f"del_{i}"):
+            df.drop(i).to_excel(EXCEL_FILE, index=False)
+            st.rerun()
