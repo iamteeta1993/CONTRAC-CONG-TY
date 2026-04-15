@@ -9,7 +9,7 @@ USER_FILE = "users.xlsx"
 DATA_FILE = "data_congty.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo"]
 
-# TÀI KHOẢN ADMIN DUY NHẤT CỦA BẠN (Thay đổi ở đây)
+# TÀI KHOẢN ADMIN DUY NHẤT CỦA BẠN (Bạn có thể đổi ở đây)
 ADMIN_USER = "admin" 
 ADMIN_PASS = "teeta123"
 
@@ -31,13 +31,15 @@ def save_user(username, password):
     users.to_excel(USER_FILE, index=False)
     return True
 
-def authenticate(username, password):
-    if username == ADMIN_USER and password == ADMIN_PASS:
-        return "admin"
-    users = load_users()
-    hashed_pwd = hash_password(password)
-    if not users[(users["username"] == username) & (users["password"] == hashed_pwd)].empty:
-        return "user"
+def authenticate(username, password, login_type):
+    if login_type == "admin":
+        if username == ADMIN_USER and password == ADMIN_PASS:
+            return "admin"
+    else:
+        users = load_users()
+        hashed_pwd = hash_password(password)
+        if not users[(users["username"] == username) & (users["password"] == hashed_pwd)].empty:
+            return "user"
     return None
 
 def get_business_info(keyword):
@@ -62,31 +64,45 @@ if "role" not in st.session_state:
 
 if st.session_state["role"] is None:
     st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
-    tab1, tab2 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký tài khoản"])
+    
+    # ĐÂY LÀ CHỖ THAY ĐỔI: Thêm tab Quản trị viên đúng vị trí bạn muốn
+    tab1, tab2, tab3 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký tài khoản", "🛡️ Quản trị viên"])
     
     with tab1:
-        u = st.text_input("Tên đăng nhập")
-        p = st.text_input("Mật khẩu", type="password")
+        u = st.text_input("Tên đăng nhập", key="u_user")
+        p = st.text_input("Mật khẩu", type="password", key="p_user")
         if st.button("Xác nhận Đăng nhập", use_container_width=True):
-            role = authenticate(u, p)
+            role = authenticate(u, p, "user")
             if role:
                 st.session_state["role"] = role
                 st.session_state["username"] = u
                 st.rerun()
-            else: st.error("Sai tài khoản hoặc mật khẩu!")
+            else: st.error("Sai tài khoản hoặc mật khẩu người dùng!")
             
     with tab2:
-        st.info("Tài khoản người dùng chỉ có quyền Xem dữ liệu.")
-        u2 = st.text_input("Tạo tên đăng nhập")
-        p2 = st.text_input("Tạo mật khẩu", type="password")
+        st.info("Đăng ký tài khoản dành cho người xem dữ liệu.")
+        u2 = st.text_input("Tạo tên đăng nhập", key="u_reg")
+        p2 = st.text_input("Tạo mật khẩu", type="password", key="p_reg")
         if st.button("Hoàn tất Đăng ký", use_container_width=True):
             if u2 and p2:
                 if save_user(u2, p2): st.success("Thành công! Mời bạn qua tab Đăng nhập.")
-                else: st.error("Tên đăng nhập đã tồn tại!")
+                else: st.error("Tên đăng nhập này đã tồn tại!")
+                
+    with tab3:
+        st.warning("Khu vực dành riêng cho Chủ sở hữu App.")
+        ua = st.text_input("Tài khoản Admin", key="u_admin")
+        pa = st.text_input("Mật khẩu Admin", type="password", key="p_admin")
+        if st.button("Đăng nhập quyền Admin", use_container_width=True):
+            role = authenticate(ua, pa, "admin")
+            if role:
+                st.session_state["role"] = role
+                st.session_state["username"] = "CHỦ APP"
+                st.rerun()
+            else: st.error("Thông tin Admin không chính xác!")
     st.stop()
 
 # --- 4. GIAO DIỆN SAU KHI ĐĂNG NHẬP ---
-st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE {'(ADMIN)' if st.session_state['role'] == 'admin' else ''}</h1>", unsafe_allow_html=True)
+st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE {'(QUẢN TRỊ)' if st.session_state['role'] == 'admin' else ''}</h1>", unsafe_allow_html=True)
 
 st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
@@ -95,11 +111,11 @@ if st.sidebar.button("Đăng xuất"):
 
 df = load_data()
 
-# PHÂN QUYỀN: CHỈ ADMIN MỚI THẤY CỘT THÊM DỮ LIỆU
+# CHỈ ADMIN MỚI THẤY PHẦN THÊM CÔNG TY
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_api = st.sidebar.text_input("🔍 Tra cứu nhanh")
+    search_api = st.sidebar.text_input("🔍 Tra cứu nhanh MST/Tên")
     name_v, mst_v, addr_v = "", "", ""
     if search_api:
         info = get_business_info(search_api)
@@ -108,18 +124,19 @@ if st.session_state["role"] == "admin":
     with st.sidebar.form("add_form", clear_on_submit=True):
         f_name = st.text_input("Tên Công Ty", value=name_v)
         f_mst = st.text_input("Mã Số Thuế", value=mst_v)
-        f_phone = st.text_input("SĐT")
+        f_owner = st.text_input("Chủ Doanh Nghiệp")
+        f_phone = st.text_input("Số Điện Thoại")
         if st.form_submit_button("Lưu Vào Hệ Thống", use_container_width=True):
             if f_name and f_mst:
-                new_row = pd.DataFrame([[f_name, f_mst, "", addr_v, f_phone, f"https://zalo.me{f_phone}"]], columns=COLUMNS)
+                new_row = pd.DataFrame([[f_name, f_mst, f_owner, addr_v, f_phone, f"https://zalo.me{f_phone}"]], columns=COLUMNS)
                 df = pd.concat([df, new_row], ignore_index=True)
                 df.to_excel(DATA_FILE, index=False)
                 st.rerun()
 else:
-    st.sidebar.warning("Bạn đang dùng quyền Người dùng. Bạn chỉ có thể xem và tìm kiếm thông tin.")
+    st.sidebar.info("Bạn đang ở chế độ Xem. Vui lòng liên hệ Admin nếu cần chỉnh sửa.")
 
 # TRANG CHÍNH: TRA CỨU
-q = st.text_input("🔎 Nhập tên hoặc MST để tìm nhanh...")
+q = st.text_input("🔎 Tìm nhanh công ty...")
 if not df.empty:
     display_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
     for i, row in display_df.iterrows():
@@ -127,11 +144,13 @@ if not df.empty:
             c1, c2 = st.columns(2)
             with c1:
                 st.write(f"📍 **ĐC:** {row['Địa Chỉ']}")
+                st.write(f"👤 **Chủ:** {row['Chủ Doanh Nghiệp']}")
             with c2:
                 st.write(f"📞 **SĐT:** {row['Liên Hệ']} | [💬 Zalo]({row['Zalo']})")
             
-            # CHỈ ADMIN MỚI THẤY NÚT XÓA
             if st.session_state["role"] == "admin":
-                if st.button(f"🗑️ Xóa", key=f"del_{i}"):
+                if st.button(f"🗑️ Xóa công ty này", key=f"del_{i}"):
                     df.drop(i).to_excel(DATA_FILE, index=False)
                     st.rerun()
+else:
+    st.info("Chưa có dữ liệu.")
