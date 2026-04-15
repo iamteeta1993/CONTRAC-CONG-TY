@@ -202,39 +202,22 @@ if not df.empty:
                             st.session_state[f"edit_{i}"] = False
                             st.rerun()
 else:
-    st.info("Chưa có dữ liệu. Hãy thêm ở cột bên trái.")
-# --- PHẦN NHẠC TEETA MUSIC (BẢN CHUẨN KHÔNG LỖI) ---
+# --- TRÌNH PHÁT NHẠC TEETA MUSIC ---
 st.sidebar.divider()
-st.sidebar.subheader("🎵 TEETA MUSIC")
+st.sidebar.subheader("🎵 Nhạc Làm Việc")
 
-music_html = """
-    <div id="player"></div>
-    <script src="https://youtube.com"></script>
-    <script>
-        var player;
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                height: '180',
-                width: '100%',
-                videoId: 'HaIjR05n1Vc',
-                playerVars: {
-                    'autoplay': 1,
-                    'controls': 1,
-                    'mute': 0
-                },
-                events: {
-                    'onReady': onPlayerReady
-                }
-            });
-        }
-        function onPlayerReady(event) {
-            event.target.setVolume(50); 
-            event.target.playVideo();
-        }
-    </script>
-"""
+# Link bản nhạc bạn vừa gửi
+default_music = "https://www.youtube.com/watch?v=HaIjR05n1Vc"
 
-with st.sidebar:
-    st.components.v1.html(music_html, height=200)
+# Tạo ô dán link (đã để sẵn link nhạc của bạn làm mặc định)
+url = st.sidebar.text_input("Dán link YouTube khác nếu muốn đổi nhạc:", value=default_music)
 
-st.sidebar.caption("🎧 Nhạc tự phát 50%. Tương tác với màn hình để nghe nhạc.")
+if url:
+    # Trình phát này của Streamlit cho phép người dùng tự:
+    # 1. Bấm Dừng/Phát
+    # 2. Kéo thanh âm lượng (Tắt âm)
+    # 3. Tua nhạc
+    st.sidebar.video(url)
+    st.sidebar.caption("🎧 Bạn có thể tùy chỉnh Âm lượng hoặc Tạm dừng ngay trên thanh điều khiển phía trên.")
+
+st.sidebar.write("---")
