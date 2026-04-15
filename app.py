@@ -64,7 +64,7 @@ if "role" not in st.session_state:
     st.session_state["role"] = None
 
 if st.session_state["role"] is None:
-    st.markdown("<h1 style='text-align: center; color: #FF4B4B; font-family: Arial Black;'>TEETA CODE</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
     t1, t2, t3, t4 = st.tabs(["🔑 Đăng nhập", "📝 Đăng ký", "🛡️ Quản trị viên", "🌐 Vào App (Khách)"])
     
     with t1:
@@ -95,7 +95,7 @@ if st.session_state["role"] is None:
             else: st.error("Thông tin Admin không chính xác!")
 
     with t4:
-        st.info("Chế độ Khách: Chỉ xem thông tin, không thể thêm/sửa/xóa.")
+        st.info("Chế độ Khách: Chỉ xem dữ liệu.")
         if st.button("VÀO XEM NGAY (FREE)", use_container_width=True):
             st.session_state["role"] = "guest"
             st.session_state["username"] = "Khách"
@@ -109,26 +109,29 @@ st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
     st.session_state["role"] = None; st.rerun()
 
-# --- PHẦN NHẠC: FIX LỖI LINK TRONG ẢNH ---
+# --- PHẦN NHẠC: ĐÃ SỬA LỖI LINK TRONG ẢNH ---
 st.sidebar.divider()
 st.sidebar.subheader("🎵 TEETA MUSIC")
-music_id = "HaIjR05n1Vc" # Link nhạc Lo-fi mới nhất của bạn
+music_id = "3I0zIK1X0vk" 
+# Tao đã thêm dấu gạch chéo / chuẩn đét vào đây rồi
+music_url = f"https://youtube.com{music_id}"
+
 music_html = f"""
     <iframe width="100%" height="180" 
-    src="https://youtube.com{music_id}?autoplay=1&mute=0&enablejsapi=1" 
-    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen id="teeta-player"></iframe>
+    src="{music_url}?autoplay=1&mute=0&enablejsapi=1" 
+    frameborder="0" allow="autoplay; encrypted-media" id="video-player"></iframe>
     <script>
       var tag = document.createElement('script');
       tag.src = "https://youtube.com";
-      var firstScriptTag = document.getElementsByTagName('script');
+      var firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
       var player;
       function onYouTubeIframeAPIReady() {{
-        player = new YT.Player('teeta-player', {{
+        player = new YT.Player('video-player', {{
           events: {{
             'onReady': function(event) {{
-              event.target.setVolume(50); // Mặc định âm lượng 50%
+              event.target.setVolume(50);
               event.target.playVideo();
             }}
           }}
@@ -138,15 +141,15 @@ music_html = f"""
 """
 with st.sidebar:
     st.components.v1.html(music_html, height=200)
-st.sidebar.caption("🎧 Nhạc tự phát 50%. Hãy chạm vào màn hình App 1 lần để kích hoạt tiếng.")
+st.sidebar.caption("🎧 Nhạc tự phát 50%. Hãy chạm vào App 1 lần để nghe tiếng.")
 
 df = load_data()
 
-# PHÂN QUYỀN ADMIN
+# PHÂN QUYỀN
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_mst = st.sidebar.text_input("🔍 Gõ MST tra cứu nhanh")
+    search_mst = st.sidebar.text_input("🔍 Gõ MST tra cứu")
     n_v, a_v = "", ""
     if search_mst:
         info = get_business_info(search_mst)
