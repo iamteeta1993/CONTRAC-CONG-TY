@@ -7,7 +7,7 @@ from datetime import datetime
 import urllib.parse
 import re
 
-# --- 1. CẤU HÌNH HỆ THỐNG ---
+# --- 1. CẤU HÌNH ---
 DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Zalo", "Cập Nhật Cuối"]
@@ -109,24 +109,28 @@ st.sidebar.write(f"👤 Chào: **{st.session_state['username']}**")
 if st.sidebar.button("Đăng xuất"):
     st.session_state["role"] = None; st.rerun()
 
-# --- PHẦN NHẠC: SỬA LỖI LINK TRONG ẢNH CỦA BẠN ---
+# --- PHẦN NHẠC: SỬA LỖI LINK NHƯ TRONG ẢNH ---
 st.sidebar.divider()
 st.sidebar.subheader("🎵 TEETA MUSIC")
-music_id = "3I0zIK1X0vk" # Đây là mã bài hát Lo-fi
-# Link chuẩn phải có /embed/ và ngăn cách rõ ràng
+# ID nhạc chuẩn từ link bạn gửi: 3I0zIK1X0vk
+music_id = "3I0zIK1X0vk"
 music_html = f"""
     <iframe width="100%" height="180" 
-    src="https://youtube.com{music_id}?autoplay=1&mute=1&enablejsapi=1" 
-    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    src="https://youtube.com{music_id}?autoplay=1&mute=0&enablejsapi=1" 
+    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen id="teeta-player"></iframe>
     <script>
-      // Mã này giúp tự động bật tiếng khi bạn chạm vào màn hình
+      var tag = document.createElement('script');
+      tag.src = "https://youtube.com";
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
       var player;
       function onYouTubeIframeAPIReady() {{
-        player = new YT.Player('video-player', {{
+        player = new YT.Player('teeta-player', {{
           events: {{
             'onReady': function(event) {{
-              event.target.setVolume(50);
-              event.target.unMute();
+              event.target.setVolume(50); // Mặc định âm lượng 50%
+              event.target.playVideo();
             }}
           }}
         }});
@@ -135,15 +139,15 @@ music_html = f"""
 """
 with st.sidebar:
     st.components.v1.html(music_html, height=200)
-st.sidebar.caption("🎧 Nhạc tự phát 50%. Hãy chạm vào App 1 lần để nghe tiếng.")
+st.sidebar.caption("🎧 Nhạc tự phát 50%. Tương tác với màn hình để kích hoạt âm thanh.")
 
 df = load_data()
 
-# PHÂN QUYỀN
+# PHÂN QUYỀN ADMIN
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_mst = st.sidebar.text_input("🔍 Gõ MST để tra cứu nhanh")
+    search_mst = st.sidebar.text_input("🔍 Gõ MST tra cứu")
     n_v, a_v = "", ""
     if search_mst:
         info = get_business_info(search_mst)
@@ -156,7 +160,7 @@ if st.session_state["role"] == "admin":
             df = pd.concat([df, new_row], ignore_index=True)
             df.to_excel(DATA_FILE, index=False); st.rerun()
 
-# HIỂN THỊ
+# TRA CỨU
 q = st.text_input("🔎 Tìm công ty...")
 if not df.empty:
     f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
