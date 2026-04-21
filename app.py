@@ -12,10 +12,11 @@ DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
 COLUMNS = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Ghi Chú", "Zalo", "Cập Nhật Cuối"]
 ADMIN_USER = "admin" 
-ADMIN_PASS = "123"
+ADMIN_PASS = "123" # Nên đổi khi đưa lên thực tế
 
-# --- 2. HÀM HỆ THỐNG ---
-def hash_password(password): return hashlib.sha256(str.encode(password)).hexdigest()
+# --- 2. HÀM HỖ TRỢ ---
+def hash_password(password): 
+    return hashlib.sha256(str.encode(password)).hexdigest()
 
 def authenticate(username, password, login_type):
     if login_type == "admin":
@@ -27,19 +28,13 @@ def authenticate(username, password, login_type):
             return "user"
     return None
 
-def save_user(username, password):
-    if not os.path.exists(USER_FILE):
-        pd.DataFrame(columns=["username", "password"]).to_excel(USER_FILE, index=False)
-    users = pd.read_excel(USER_FILE, dtype=str)
-    if username in users["username"].values or username == ADMIN_USER: return False
-    new_user = pd.DataFrame([{"username": username, "password": hash_password(password)}])
-    pd.concat([users, new_user], ignore_index=True).to_excel(USER_FILE, index=False)
-    return True
-
 def get_business_info(mst):
+    """Gọi API lấy thông tin doanh nghiệp tự động"""
     try:
-        res = requests.get(f"https://vietqr.io{mst}", timeout=5)
-        return res.json()['data'] if res.status_code == 200 and res.json()['code'] == "00" else None
+        # Sử dụng API mở của VietQR hoặc các đơn vị tương đương
+        res = requests.get(f"https://api.vietqr.io/v2/business/{mst}", timeout=5)
+        data = res.json()
+        return data['data'] if data.get('code') == "00" else None
     except: return None
 
 def load_data():
@@ -52,80 +47,125 @@ def load_data():
         except: return pd.DataFrame(columns=COLUMNS)
     return pd.DataFrame(columns=COLUMNS)
 
-def clean_phone(phone): return re.sub(r'\D', '', str(phone))
+def clean_phone(phone): 
+    return re.sub(r'\D', '', str(phone))
 
-# --- 3. GIAO DIỆN ĐĂNG NHẬP / KHÁCH ---
-st.set_page_config(page_title="TEETA CODE", layout="wide")
-if "role" not in st.session_state: st.session_state["role"] = None
+# --- 3. CẤU HÌNH GIAO DIỆN ---
+st.set_page_config(page_title="Hệ Thống Khuôn Mẫu Miền Nam", layout="wide", page_icon="🏗️")
 
+if "role" not in st.session_state: 
+    st.session_state["role"] = None
+
+# GIAO DIỆN ĐĂNG NHẬP
 if st.session_state["role"] is None:
-    st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE</h1>", unsafe_allow_html=True)
-    t1, t2, t3, t4 = st.tabs(["🔑 Thành viên", "📝 Đăng ký", "🛡️ Admin", "🌐 Khách"])
+    st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>TEETA CODE - DATABASE</h1>", unsafe_allow_html=True)
+    t1, t2, t3 = st.tabs(["🔑 Thành viên", "🛡️ Quản trị", "🌐 Khách"])
+    
     with t1:
-        u = st.text_input("Username"); p = st.text_input("Password", type="password")
-        if st.button("ĐĂNG NHẬP THÀNH VIÊN"):
+        u = st.text_input("Tên đăng nhập", key="user_u")
+        p = st.text_input("Mật khẩu", type="password", key="user_p")
+        if st.button("VÀO HỆ THỐNG"):
             r = authenticate(u, p, "user")
-            if r: st.session_state["role"], st.session_state["username"] = r, u; st.rerun()
-            else: st.error("Sai thông tin!")
-    with t3:
-        ua = st.text_input("Admin User"); pa = st.text_input("Admin Pass", type="password")
-        if st.button("XÁC NHẬN ADMIN"):
+            if r: 
+                st.session_state["role"], st.session_state["username"] = r, u
+                st.rerun()
+            else: st.error("Thông tin không chính xác!")
+            
+    with t2:
+        ua = st.text_input("Admin ID", key="admin_u")
+        pa = st.text_input("Admin Key", type="password", key="admin_p")
+        if st.button("XÁC NHẬN QUYỀN ADMIN"):
             r = authenticate(ua, pa, "admin")
-            if r: st.session_state["role"], st.session_state["username"] = r, "CHỦ APP"; st.rerun()
-    with t4:
-        st.info("Chế độ Khách: Chỉ xem thông tin cơ bản.")
-        if st.button("VÀO XEM (FREE)"):
-            st.session_state["role"], st.session_state["username"] = "guest", "Khách"; st.rerun()
+            if r: 
+                st.session_state["role"], st.session_state["username"] = r, "ADMIN"
+                st.rerun()
+                
+    with t3:
+        st.info("Chế độ xem tự do (Bị hạn chế thông tin nội bộ)")
+        if st.button("XEM DANH SÁCH FREE"):
+            st.session_state["role"], st.session_state["username"] = "guest", "Khách"
+            st.rerun()
     st.stop()
 
-# --- 4. GIAO DIỆN CHÍNH ---
-st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black;'>TEETA <span style='color: #31333F;'>CODE</span></h1> </div>", unsafe_allow_html=True)
-
-st.sidebar.write(f"👤 Quyền: **{st.session_state['role'].upper()}**")
-if st.sidebar.button("Thoát"): st.session_state["role"] = None; st.rerun()
-
-# NHẠC ZING MP3 (Ai cũng nghe được)
-st.sidebar.divider()
-zing_html = '<iframe title="Zing MP3" width="100%" height="400" src="https://zingmp3.vn" frameborder="0" allowfullscreen="true"></iframe>'
-with st.sidebar: st.components.v1.html(zing_html, height=410)
+# --- 4. TRANG CHÍNH ---
+st.title("🏗️ DỮ LIỆU CÔNG TY KHUÔN MẪU MIỀN NAM")
+st.sidebar.markdown(f"### Chào, **{st.session_state['username']}**")
+if st.sidebar.button("Đăng xuất"):
+    st.session_state["role"] = None
+    st.rerun()
 
 df = load_data()
 
-# PHÂN QUYỀN TRÊN SIDEBAR
+# SIDEBAR: CÔNG CỤ ADMIN
 if st.session_state["role"] == "admin":
-    st.sidebar.subheader("➕ Thêm Công Ty")
-    search_mst = st.sidebar.text_input("🔍 Gõ MST tra nhanh")
-    n_v, a_v = "", ""
+    st.sidebar.divider()
+    st.sidebar.subheader("➕ Thêm mới công ty")
+    search_mst = st.sidebar.text_input("Nhập MST để lấy thông tin nhanh")
+    
+    name_init, addr_init = "", ""
     if search_mst:
         info = get_business_info(search_mst)
-        if info: n_v, a_v = info.get('name', ''), info.get('address', '')
-    with st.sidebar.form("add_form", clear_on_submit=True):
-        fn = st.text_input("Tên", value=n_v); fm = st.text_input("MST", value=search_mst); fa = st.text_input("Địa chỉ", value=a_v); fp = st.text_input("SĐT"); fg = st.text_area("Ghi chú")
-        if st.form_submit_button("Lưu"):
-            now = datetime.now().strftime("%d/%m/%Y %H:%M")
-            new_row = pd.DataFrame([[fn, fm, "", fa, fp, fg, f"https://zalo.me{clean_phone(fp)}", now]], columns=COLUMNS)
-            df = pd.concat([df, new_row], ignore_index=True); df.to_excel(DATA_FILE, index=False); st.rerun()
-    # Chỉ Admin mới thấy nút tải file
-    with open(DATA_FILE, "rb") as f: st.sidebar.download_button("📥 Tải file Excel", f, file_name="data.xlsx")
+        if info:
+            name_init, addr_init = info.get('name', ''), info.get('address', '')
+            st.sidebar.success("Đã tìm thấy thông tin!")
 
-# TRANG CHÍNH: TRA CỨU
-q = st.text_input("🔎 Tìm tên hoặc MST...")
+    with st.sidebar.form("add_company_form"):
+        f_name = st.text_input("Tên Công Ty", value=name_init)
+        f_mst = st.text_input("Mã Số Thuế", value=search_mst)
+        f_addr = st.text_input("Địa Chỉ", value=addr_init)
+        f_phone = st.text_input("Số Điện Thoại")
+        f_note = st.text_area("Ghi chú (Năng lực sản xuất...)")
+        
+        if st.form_submit_button("LƯU VÀO DATABASE"):
+            now = datetime.now().strftime("%d/%m/%Y %H:%M")
+            zalo_url = f"https://zalo.me/{clean_phone(f_phone)}"
+            new_data = pd.DataFrame([[f_name, f_mst, "", f_addr, f_phone, f_note, zalo_url, now]], columns=COLUMNS)
+            df = pd.concat([df, new_data], ignore_index=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.sidebar.success("Đã thêm thành công!")
+            st.rerun()
+
+# KHU VỰC TRA CỨU
+search_q = st.text_input("🔎 Tìm kiếm theo Tên công ty, MST hoặc Địa chỉ...", placeholder="Ví dụ: Khuôn mẫu, Bình Dương, 0314...")
+
 if not df.empty:
-    f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
-    for i, row in f_df.iterrows():
-        with st.expander(f"🏢 {row['Tên Công Ty']} - {row['Mã Số Thuế']}"):
-            c1, c2 = st.columns(2)
-            with c1:
-                st.write(f"📍 {row['Địa Chỉ']}")
-                maps_q = urllib.parse.quote(str(row['Địa Chỉ']))
-                st.markdown(f"🌍 [Mở Google Maps](https://google.com{maps_q})")
-                # CHỈ THÀNH VIÊN & ADMIN MỚI THẤY GHI CHÚ
+    # Lọc dữ liệu thông minh
+    mask = df.apply(lambda row: row.astype(str).str.contains(search_q, case=False).any(), axis=1)
+    filtered_df = df[mask] if search_q else df
+
+    st.write(f"Tìm thấy **{len(filtered_df)}** kết quả.")
+
+    for i, row in filtered_df.iterrows():
+        with st.expander(f"🏢 **{row['Tên Công Ty']}** - MST: {row['Mã Số Thuế']}"):
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                st.markdown(f"**📍 Địa chỉ:** {row['Địa Chỉ']}")
+                # Tạo link Google Maps chuẩn
+                maps_link = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(str(row['Địa Chỉ']))}"
+                st.markdown(f"🔗 [Xem trên Google Maps]({maps_link})")
+                
                 if st.session_state["role"] in ["admin", "user"]:
                     st.info(f"📝 **Ghi chú nội bộ:** {row['Ghi Chú']}")
-            with c2:
-                st.write(f"📞 {row['Liên Hệ']}")
-                st.markdown(f"""<a href="https://zalo.me{clean_phone(row['Liên Hệ'])}" target="_blank" style="text-decoration:none;"><div style="background-color:#0068FF;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">💬 NHẮN ZALO</div></a>""", unsafe_allow_html=True)
-            # CHỈ ADMIN MỚI THẤY NÚT XÓA
+                else:
+                    st.warning("🔒 Đăng nhập để xem ghi chú năng lực.")
+            
+            with col2:
+                phone_display = row['Liên Hệ'] if row['Liên Hệ'] else "Chưa cập nhật"
+                st.markdown(f"**📞 Liên hệ:** {phone_display}")
+                if row['Liên Hệ']:
+                    st.markdown(f"""
+                        <a href="{row['Zalo']}" target="_blank" style="text-decoration:none;">
+                            <div style="background-color:#0068FF;color:white;padding:8px;border-radius:5px;text-align:center;font-weight:bold;">
+                                💬 NHẮN ZALO
+                            </div>
+                        </a>
+                    """, unsafe_allow_html=True)
+            
             if st.session_state["role"] == "admin":
-                if st.button("🗑️ Xóa", key=f"d_{i}"): df.drop(i).to_excel(DATA_FILE, index=False); st.rerun()
-else: st.info("Trống.")
+                if st.button(f"🗑️ Xóa công ty", key=f"del_{i}"):
+                    df = df.drop(i)
+                    df.to_excel(DATA_FILE, index=False)
+                    st.rerun()
+else:
+    st.info("Chưa có dữ liệu. Vui lòng dùng tài quyền Admin để thêm mới.")
