@@ -39,6 +39,7 @@ def save_user(username, password):
 
 def get_business_info(mst):
     try:
+        # API VietQR v2 chính xác
         res = requests.get(f"https://api.vietqr.io/v2/business/{mst}", timeout=5)
         data = res.json()
         return data['data'] if data.get('code') == "00" else None
@@ -57,8 +58,8 @@ def load_data():
 def clean_phone(phone): 
     return re.sub(r'\D', '', str(phone))
 
-# --- 3. GIAO DIỆN ---
-st.set_page_config(page_title="TEETA CODE", layout="wide")
+# --- 3. GIAO DIỆN ĐĂNG NHẬP ---
+st.set_page_config(page_title="TEETA CODE - Quản lý Doanh nghiệp", layout="wide")
 if "role" not in st.session_state: st.session_state["role"] = None
 
 if st.session_state["role"] is None:
@@ -66,102 +67,146 @@ if st.session_state["role"] is None:
     t1, t2, t3, t4 = st.tabs(["🔑 Thành viên", "📝 Đăng ký", "🛡️ Admin", "🌐 Khách"])
     
     with t1:
-        u = st.text_input("Username", key="l_u")
-        p = st.text_input("Password", type="password", key="l_p")
-        if st.button("ĐĂNG NHẬP", use_container_width=True):
+        u = st.text_input("Username", key="login_u")
+        p = st.text_input("Password", type="password", key="login_p")
+        if st.button("ĐĂNG NHẬP THÀNH VIÊN", use_container_width=True):
             r = authenticate(u, p, "user")
-            if r: st.session_state["role"], st.session_state["username"] = r, u; st.rerun()
-            else: st.error("Sai thông tin!")
+            if r: 
+                st.session_state["role"], st.session_state["username"] = r, u
+                st.rerun()
+            else: st.error("Sai tài khoản hoặc mật khẩu!")
             
     with t2:
-        nu = st.text_input("Username mới", key="r_u")
-        np = st.text_input("Password mới", type="password", key="r_p")
-        if st.button("ĐĂNG KÝ", use_container_width=True):
-            if save_user(nu, np): st.success("Xong! Qua tab Đăng nhập nhé.")
-            else: st.error("Lỗi hoặc tên đã tồn tại.")
+        nu = st.text_input("Tên đăng ký", key="reg_u")
+        np = st.text_input("Mật khẩu", type="password", key="reg_p")
+        if st.button("TẠO TÀI KHOẢN", use_container_width=True):
+            if nu and np:
+                if save_user(nu, np): st.success("Đăng ký thành công! Hãy đăng nhập.")
+                else: st.error("Tên người dùng đã tồn tại.")
+            else: st.warning("Vui lòng nhập đầy đủ.")
 
     with t3:
-        ua = st.text_input("Admin User", key="a_u")
-        pa = st.text_input("Admin Pass", type="password", key="a_p")
-        if st.button("VÀO ADMIN", use_container_width=True):
+        ua = st.text_input("Admin User", key="ad_u")
+        pa = st.text_input("Admin Pass", type="password", key="ad_p")
+        if st.button("XÁC NHẬN QUYỀN ADMIN", use_container_width=True):
             r = authenticate(ua, pa, "admin")
-            if r: st.session_state["role"], st.session_state["username"] = r, "CHỦ APP"; st.rerun()
+            if r: 
+                st.session_state["role"], st.session_state["username"] = r, "QUẢN TRỊ VIÊN"
+                st.rerun()
+            else: st.error("Sai thông tin quản trị!")
             
     with t4:
-        if st.button("VÀO XEM FREE", use_container_width=True):
-            st.session_state["role"], st.session_state["username"] = "guest", "Khách"; st.rerun()
+        st.info("Chế độ Khách: Chỉ xem các thông tin công khai.")
+        if st.button("VÀO XEM (FREE)", use_container_width=True):
+            st.session_state["role"], st.session_state["username"] = "guest", "Khách"
+            st.rerun()
     st.stop()
 
-# --- 4. TRANG CHÍNH ---
-st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black;'>TEETA CODE</h1> </div>", unsafe_allow_html=True)
+# --- 4. GIAO DIỆN CHÍNH ---
+st.markdown("<div style='text-align: center; margin-top: -60px;'> <h1 style='color: #FF4B4B; font-family: Arial Black;'>TEETA <span style='color: #31333F;'>CODE</span></h1> </div>", unsafe_allow_html=True)
 
-# SIDEBAR: GIẢI TRÍ VỚI THANH ÂM LƯỢNG
-st.sidebar.write(f"👤: **{st.session_state['username']}** ({st.session_state['role']})")
-if st.sidebar.button("Thoát"): st.session_state["role"] = None; st.rerun()
+# SIDEBAR
+st.sidebar.subheader(f"👋 {st.session_state['username']}")
+st.sidebar.write(f"Quyền hạn: **{st.session_state['role'].upper()}**")
+if st.sidebar.button("Đăng xuất"): 
+    st.session_state["role"] = None
+    st.rerun()
 
+# --- SIDEBAR: GIẢI TRÍ (SPOTIFY & YOUTUBE) ---
 st.sidebar.divider()
 st.sidebar.subheader("🎵 Giải Trí")
-tab_nhac, tab_vid = st.sidebar.tabs(["Nghe Nhạc", "YouTube"])
+tab_music, tab_video = st.sidebar.tabs(["Spotify", "YouTube"])
 
-with tab_nhac:
-    # Sử dụng Audio Player mặc định của Streamlit (Có thanh âm lượng chuẩn)
-    st.write("🔥 Nhạc Chill:")
-    # Bạn có thể thay link MP3 bất kỳ vào đây
-    nhac_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-    st.audio(nhac_url, format="audio/mp3")
-    
-    st.write("✨ Spotify (Nhúng):")
-    st.components.v1.html("""
-        <iframe src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM3M" 
-        width="100%" height="152" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+with tab_music:
+    # Link Playlist Spotify
+    spotify_url = "https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M" # Playlist Focus
+    st.components.v1.html(f"""
+        <iframe src="{spotify_url}" width="100%" height="152" frameBorder="0" 
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+        style="border-radius:12px;"></iframe>
     """, height=160)
 
-with tab_vid:
+with tab_video:
+    # ID Video YouTube (Lofi Music)
     yt_id = "jfKfPfyJRdk" 
     st.components.v1.html(f"""
-        <iframe width="100%" height="150" src="https://www.youtube.com/embed/{yt_id}" 
-        frameborder="0" allowfullscreen style="border-radius:12px;"></iframe>
+        <iframe width="100%" height="152" src="https://www.youtube.com/embed/{yt_id}" 
+        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+        allowfullscreen style="border-radius:12px;"></iframe>
     """, height=160)
 
-# QUẢN LÝ DỮ LIỆU
+# --- QUẢN LÝ DỮ LIỆU ---
 df = load_data()
 
 if st.session_state["role"] == "admin":
     st.sidebar.divider()
     st.sidebar.subheader("➕ Thêm Công Ty")
-    search_mst = st.sidebar.text_input("🔍 MST tra nhanh")
+    search_mst = st.sidebar.text_input("🔍 Tra MST nhanh")
     n_v, a_v = "", ""
+    
     if search_mst:
         info = get_business_info(search_mst)
-        if info: n_v, a_v = info.get('name', ''), info.get('address', '')
+        if info: 
+            n_v, a_v = info.get('name', ''), info.get('address', '')
+            st.sidebar.success("Đã tìm thấy dữ liệu!")
+        else: st.sidebar.warning("Không tìm thấy MST này.")
             
     with st.sidebar.form("add_form", clear_on_submit=True):
-        fn = st.text_input("Tên", value=n_v); fm = st.text_input("MST", value=search_mst)
-        fa = st.text_input("Địa chỉ", value=a_v); fp = st.text_input("SĐT"); fg = st.text_area("Ghi chú")
-        if st.form_submit_button("LƯU"):
+        fn = st.text_input("Tên Công Ty", value=n_v)
+        fm = st.text_input("Mã Số Thuế", value=search_mst)
+        fa = st.text_input("Địa chỉ", value=a_v)
+        fp = st.text_input("Số điện thoại")
+        fg = st.text_area("Ghi chú")
+        if st.form_submit_button("LƯU VÀO HỆ THỐNG"):
             now = datetime.now().strftime("%d/%m/%Y %H:%M")
             new_row = pd.DataFrame([[fn, fm, "", fa, fp, fg, f"https://zalo.me/{clean_phone(fp)}", now]], columns=COLUMNS)
-            df = pd.concat([df, new_row], ignore_index=True); df.to_excel(DATA_FILE, index=False); st.rerun()
+            df = pd.concat([df, new_row], ignore_index=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.success("Đã lưu thành công!")
+            st.rerun()
 
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "rb") as f: st.sidebar.download_button("📥 Tải file Excel", f, file_name="data.xlsx")
+        with open(DATA_FILE, "rb") as f:
+            st.sidebar.download_button("📥 Xuất file Excel", f, file_name="data_teetacode.xlsx")
 
-# HIỂN THỊ
-q = st.text_input("🔎 Tìm tên hoặc MST...")
+# --- TRANG CHỦ: TÌM KIẾM & HIỂN THỊ ---
+q = st.text_input("🔎 Nhập Tên Công Ty hoặc Mã Số Thuế để tìm kiếm...")
+
 if not df.empty:
-    f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
+    # Lọc dữ liệu
+    f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | 
+              df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
+    
+    st.write(f"Tìm thấy **{len(f_df)}** kết quả.")
+
     for i, row in f_df.iterrows():
         with st.expander(f"🏢 {row['Tên Công Ty']} - {row['Mã Số Thuế']}"):
             c1, c2 = st.columns(2)
             with c1:
-                st.write(f"📍 {row['Địa Chỉ']}")
-                maps_url = f"https://www.google.com/maps/search/{urllib.parse.quote(str(row['Địa Chỉ']))}"
-                st.markdown(f"🌍 [Mở bản đồ]({maps_url})")
-                if st.session_state["role"] in ["admin", "user"]: st.info(f"📝 {row['Ghi Chú']}")
+                st.write(f"**📍 Địa chỉ:** {row['Địa Chỉ']}")
+                # Sửa link Google Maps
+                maps_q = urllib.parse.quote(str(row['Địa Chỉ']))
+                st.markdown(f"🌍 [Xem bản đồ](https://www.google.com/maps/search/?api=1&query={maps_q})")
+                
+                if st.session_state["role"] in ["admin", "user"]:
+                    st.info(f"📝 **Ghi chú nội bộ:** {row['Ghi Chú']}")
+            
             with c2:
-                st.write(f"📞 {row['Liên Hệ']}")
-                zalo = f"https://zalo.me/{clean_phone(row['Liên Hệ'])}"
-                st.markdown(f'<a href="{zalo}" target="_blank" style="text-decoration:none;"><div style="background-color:#0068FF;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">💬 ZALO</div></a>', unsafe_allow_html=True)
+                st.write(f"**📞 Liên hệ:** {row['Liên Hệ']}")
+                z_link = f"https://zalo.me/{clean_phone(row['Liên Hệ'])}"
+                st.markdown(f"""
+                    <a href="{z_link}" target="_blank" style="text-decoration:none;">
+                        <div style="background-color:#0068FF;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">
+                            💬 NHẮN ZALO NGAY
+                        </div>
+                    </a>
+                """, unsafe_allow_html=True)
+                st.caption(f"Cập nhật lúc: {row['Cập Nhật Cuối']}")
+
             if st.session_state["role"] == "admin":
-                if st.button("🗑️ Xóa", key=f"d_{i}"): df.drop(i).to_excel(DATA_FILE, index=False); st.rerun()
-else: st.info("Chưa có dữ liệu.")
+                if st.button("🗑️ Xóa dữ liệu này", key=f"del_{i}"):
+                    df = df.drop(i)
+                    df.to_excel(DATA_FILE, index=False)
+                    st.rerun()
+else:
+    st.info("Hệ thống chưa có dữ liệu. Vui lòng đăng nhập quyền Admin để thêm.")
