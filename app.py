@@ -221,3 +221,93 @@ if st.session_state["role"] == "admin":
                     st.success("Đã thêm thành công!")
                     st.rerun()
                 else: st.error("Vui lòng điền Tên và MST!")
+# --- TAB 1: TRA CỨU & HIỂN THỊ (CÓ TÍNH NĂNG SỬA & LƯU) ---
+with tabs_main[0]:
+    q = st.text_input("🔎 Tìm kiếm nhanh", placeholder="Nhập Tên Công Ty hoặc Mã Số Thuế...")
+
+    if not df.empty:
+        # Lọc dữ liệu theo tìm kiếm
+        f_df = df[df['Tên Công Ty'].str.contains(q, case=False, na=False) | 
+                  df['Mã Số Thuế'].str.contains(q, case=False, na=False)] if q else df
+        
+        st.write(f"Tìm thấy **{len(f_df)}** kết quả.")
+
+        for i, row in f_df.iterrows():
+            # Tạo key trạng thái riêng cho từng dòng để quản lý việc mở form sửa
+            edit_mode_key = f"edit_mode_{i}"
+            if edit_mode_key not in st.session_state:
+                st.session_state[edit_mode_key] = False
+
+            with st.expander(f"🏢 {row['Tên Công Ty']} - MST: {row['Mã Số Thuế']}"):
+                
+                # --- CHẾ ĐỘ CHỈNH SỬA (DÀNH CHO ADMIN) ---
+                if st.session_state[edit_mode_key] and st.session_state["role"] == "admin":
+                    st.markdown("### 📝 Hiệu chỉnh thông tin")
+                    with st.form(key=f"form_edit_{i}"):
+                        c_edit1, c_edit2 = st.columns(2)
+                        with c_edit1:
+                            new_ten = st.text_input("Tên Công Ty", value=row['Tên Công Ty'])
+                            new_mst = st.text_input("Mã Số Thuế", value=row['Mã Số Thuế'])
+                            new_chu = st.text_input("Chủ doanh nghiệp", value=row['Chủ Doanh Nghiệp'])
+                        with c_edit2:
+                            new_dc = st.text_input("Địa chỉ", value=row['Địa Chỉ'])
+                            new_lh = st.text_input("Liên hệ", value=row['Liên Hệ'])
+                        
+                        new_gc = st.text_area("Ghi chú", value=row['Ghi Chú'], height=150)
+                        
+                        col_save1, col_save2 = st.columns(2)
+                        with col_save1:
+                            if st.form_submit_button("💾 LƯU THAY ĐỔI", use_container_width=True):
+                                # Cập nhật vào DataFrame tổng
+                                now = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                df.loc[i] = [
+                                    new_ten, new_mst, new_chu, new_dc, 
+                                    new_lh, new_gc, f"https://zalo.me/{clean_phone(new_lh)}", now
+                                ]
+                                # Lưu xuống file Excel
+                                df.to_excel(DATA_FILE, index=False)
+                                st.session_state[edit_mode_key] = False
+                                st.success("Đã cập nhật dữ liệu thành công!")
+                                st.rerun()
+                        with col_save2:
+                            if st.form_submit_button("❌ HỦY BỎ", use_container_width=True):
+                                st.session_state[edit_mode_key] = False
+                                st.rerun()
+
+                # --- CHẾ ĐỘ HIỂN THỊ (MẶC ĐỊNH) ---
+                else:
+                    c1, c2 = st.columns([2, 1])
+                    with c1:
+                        st.markdown(f"**📍 Địa chỉ:** {row['Địa Chỉ']}")
+                        maps_q = urllib.parse.quote(str(row['Địa Chỉ']))
+                        st.markdown(f"🔗 [Xem bản đồ](https://www.google.com/maps/search/?api=1&query={maps_q})")
+                        st.info(f"📝 **Ghi chú:**\n\n{row['Ghi Chú']}")
+                    
+                    with c2:
+                        st.markdown(f"**👤 Chủ doanh nghiệp:** {row['Chủ Doanh Nghiệp']}")
+                        st.markdown(f"**📞 Liên hệ:** {row['Liên Hệ']}")
+                        if row['Liên Hệ']:
+                            z_link = f"https://zalo.me/{clean_phone(row['Liên Hệ'])}"
+                            st.markdown(f"""
+                                <a href="{z_link}" target="_blank" style="text-decoration:none;">
+                                    <div style="background-color:#0068FF;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">
+                                        💬 NHẮN ZALO
+                                    </div>
+                                </a>
+                            """, unsafe_allow_html=True)
+                        st.caption(f"Cập nhật: {row['Cập Nhật Cuối']}")
+
+                    # Nút chức năng cho Admin (Xóa & Sửa)
+                    if st.session_state["role"] == "admin":
+                        st.divider()
+                        col_btn1, col_btn2 = st.columns(2)
+                        with col_btn1:
+                            if st.button("🗑️ Xóa dữ liệu", key=f"del_{i}", use_container_width=True):
+                                df = df.drop(i)
+                                df.to_excel(DATA_FILE, index=False)
+                                st.warning("Đã xóa dữ liệu!")
+                                st.rerun()
+                        with col_btn2:
+                            if st.button("📝 Chỉnh sửa", key=f"edit_btn_{i}", use_container_width=True):
+                                st.session_state[edit_mode_key] = True
+                                st.rerun()
