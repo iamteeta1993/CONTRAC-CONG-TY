@@ -5,12 +5,10 @@ import hashlib
 from datetime import datetime
 import urllib.parse
 import re
-from io import BytesIO
 
 # --- 1. CẤU HÌNH HỆ THỐNG ---
 DATA_FILE = "data_congty.xlsx"
 USER_FILE = "users.xlsx"
-# Đầy đủ danh sách cột cho 2 nhóm
 COLUMNS_CTY = ["Tên Công Ty", "Mã Số Thuế", "Chủ Doanh Nghiệp", "Địa Chỉ", "Liên Hệ", "Ghi Chú", "Zalo", "Cập Nhật Cuối"]
 COLUMNS_PERS = ["Tên Liên Hệ", "Công Ty Đang Làm", "Địa Chỉ", "Zalo", "Facebook", "Ghi Chú", "Cập Nhật Cuối"]
 ADMIN_USER = "admin" 
@@ -38,13 +36,12 @@ def save_to_sheet(df, sheet_name):
         with pd.ExcelWriter(DATA_FILE, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name=sheet_name, index=False)
     else:
-        # Đọc tất cả sheets hiện có để không làm mất dữ liệu khi ghi sheet mới
         all_sheets = {}
         with pd.ExcelFile(DATA_FILE) as xls:
             for s in xls.sheet_names:
                 all_sheets[s] = pd.read_excel(xls, sheet_name=s, dtype=str)
         
-        all_sheets[sheet_name] = df # Cập nhật hoặc thêm sheet mới
+        all_sheets[sheet_name] = df
         
         with pd.ExcelWriter(DATA_FILE, engine='openpyxl') as writer:
             for s_name, s_df in all_sheets.items():
@@ -78,34 +75,4 @@ if st.session_state["role"] is None:
     st.stop()
 
 # --- 4. GIAO DIỆN CHÍNH ---
-st.sidebar.subheader(f"👋 {st.session_state['username']}")
-if st.sidebar.button("🚪 Đăng xuất"): st.session_state["role"] = None; st.rerun()
-
-if st.session_state["role"] == "admin" and os.path.exists(DATA_FILE):
-    st.sidebar.divider()
-    with open(DATA_FILE, "rb") as f:
-        st.sidebar.download_button("📁 Tải Dữ Liệu Tổng (.xlsx)", f, file_name="data_teetacode.xlsx", use_container_width=True)
-
-st.sidebar.divider()
-st.sidebar.subheader("🎵 Giải Trí")
-st.sidebar.components.v1.html('<iframe src="https://www.nhaccuatui.com/mh/background/L6Wv9X7Z2z3n" width="100%" height="150" frameborder="0"></iframe>', height=160)
-
-# TABS CHÍNH
-if st.session_state["role"] == "admin":
-    tab_cty, tab_pers, tab_add = st.tabs(["🏢 Công Ty", "👤 Liên Hệ Cá Nhân", "➕ Thêm Mới"])
-else:
-    tab_cty, tab_pers = st.tabs(["🏢 Công Ty", "👤 Liên Hệ Cá Nhân"])
-
-# --- TAB 1: CÔNG TY ---
-with tab_cty:
-    df_cty = load_data_from_sheet("CongTy", COLUMNS_CTY)
-    q_cty = st.text_input("🔎 Tìm công ty hoặc MST...", key="search_cty")
-    f_cty = df_cty[df_cty['Tên Công Ty'].str.contains(q_cty, case=False, na=False) | df_cty['Mã Số Thuế'].str.contains(q_cty, case=False, na=False)] if q_cty else df_cty
-    
-    for i, r in f_cty.iterrows():
-        edit_key = f"ed_cty_{i}"
-        if edit_key not in st.session_state: st.session_state[edit_key] = False
-        
-        with st.expander(f"🏢 {r['Tên Công Ty']} - {r['Mã Số Thuế']}"):
-            if st.session_state[edit_key] and st.session_state["role"] == "admin":
-                with st.form(f"frm_ed_cty_{i}")
+st.sidebar.subheader(f"👋 {st.session_
